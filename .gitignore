@@ -176,3 +176,57 @@ preprocessed_data/
 
 # Ignore IDE-specific files
 .vscode/
+
+
+
+# Manually Added ones 
+# Compiled Python files
+*.pyc
+
+# Python cache
+__pycache__
+
+# Virtual environment
+venv/
+.venv/
+.venv
+env/
+*.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Model files
+*.h5
+*.hdf5
+*.pth
+
+# Training data
+data/
+*.csv
+*.txt
+
+# Log files
+log/
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Image outputs
+img_1006/
+result/
+result_test/
+
+# Image datasets
+datasets/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Model
+model/
+
