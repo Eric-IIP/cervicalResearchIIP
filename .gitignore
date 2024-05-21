@@ -230,3 +230,11 @@ Thumbs.db
 # Model
 model/
 
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.svg
+
