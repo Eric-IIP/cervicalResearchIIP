@@ -229,6 +229,7 @@ Thumbs.db
 
 # Model
 model/
+.vscode/
 
 *.png
 *.jpg
@@ -238,3 +239,5 @@ model/
 *.tiff
 *.svg
 
+
+checkpoint.pt
