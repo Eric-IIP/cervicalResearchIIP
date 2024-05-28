@@ -295,10 +295,12 @@ class UNet(nn.Module):
                  ):
         super().__init__()
 
-        self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
+        #commented the fusion part for original UNet 
         
-        # self.in_channels = in_channels
-        self.in_channels = 1
+        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
+        
+        # uncommented this part for original UNet
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.n_blocks = n_blocks
         self.start_filters = start_filters
@@ -376,7 +378,8 @@ class UNet(nn.Module):
     def forward(self, x: torch.tensor):
         encoder_output = []
 
-        x = self.fusion(x)
+        # commented this part for original UNet
+        #x = self.fusion(x)
         
         # Encoder pathway
         for module in self.down_blocks:
