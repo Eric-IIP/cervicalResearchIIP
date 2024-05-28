@@ -1,6 +1,6 @@
 import os
 
-def custom_logger(*args, log_file):
+def custom_logger(log_file, *args):
     directory = os.path.dirname(log_file)
     if not os.path.exists(directory):
         os.makedirs(directory)  # Create directory if it doesn't exist
