@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-def plot_images(images, titles=None):
+def plot_images(path, images, titles=None):
     num_images = len(images)
     num_cols = 3  # 3 columns
     num_rows = (num_images - 1) // num_cols + 1
@@ -19,7 +20,7 @@ def plot_images(images, titles=None):
     # Hide any remaining empty subplots
     for ax in axes[num_images:]:
         ax.axis('off')
-
+    plt.savefig(os.path.join(path, "output.png"))
     plt.tight_layout()
     plt.show()
 
