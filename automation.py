@@ -5,17 +5,15 @@ import tempfile
 
 
 
-    # {'N_BLOCK': 3, 'LR': 0.01,  'OUTPUT_DIR': '1'},
-    # {'N_BLOCK': 3, 'LR': 0.001, 'OUTPUT_DIR': '2'},
-    # {'N_BLOCK': 4, 'LR': 0.01,  'OUTPUT_DIR': '3'},
-    # {'N_BLOCK': 4, 'LR': 0.001, 'OUTPUT_DIR': '4'},
-    # {'N_BLOCK': 5, 'LR': 0.01,  'OUTPUT_DIR': '5'},
-    # {'N_BLOCK': 5, 'LR': 0.001, 'OUTPUT_DIR': '6'},
+    
     # # Add more parameter sets as needed
 
 
 parameter_sets = [
-    {'N_BLOCK': 5, 'LR': 0.01,  'OUTPUT_DIR': '5'},
+    {'N_BLOCK': 4, 'LR': 0.01,  'OUTPUT_DIR': 'o1'},
+    {'N_BLOCK': 4, 'LR': 0.001, 'OUTPUT_DIR': 'o2'},
+    {'N_BLOCK': 5, 'LR': 0.01,  'OUTPUT_DIR': 'o3'},
+    {'N_BLOCK': 5, 'LR': 0.001, 'OUTPUT_DIR': 'o4'},
     # Add more parameter sets as needed
 ]
 
@@ -31,7 +29,7 @@ for params in parameter_sets:
     # Create a temporary file for the output notebook
     with tempfile.NamedTemporaryFile(suffix=".ipynb") as temp_output:
         pm.execute_notebook(
-            'Main_without_Annealing.ipynb',  # Path to your input notebook
+            'mainUNet.ipynb',  # Path to your input notebook
             temp_output.name,  # Path to the temporary output notebook
             parameters=params
         )
