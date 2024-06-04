@@ -10,10 +10,10 @@ import tempfile
 
 
 parameter_sets = [
-    {'N_BLOCK': 4, 'LR': 0.01,  'OUTPUT_DIR': 'o1'},
-    {'N_BLOCK': 4, 'LR': 0.001, 'OUTPUT_DIR': 'o2'},
-    {'N_BLOCK': 5, 'LR': 0.01,  'OUTPUT_DIR': 'o3'},
-    {'N_BLOCK': 5, 'LR': 0.001, 'OUTPUT_DIR': 'o4'},
+    {'N_BLOCK': 4, 'LR': 0.01,  'OUTPUT_DIR': 'o5'},
+    {'N_BLOCK': 4, 'LR': 0.001, 'OUTPUT_DIR': 'o6'},
+    {'N_BLOCK': 5, 'LR': 0.01,  'OUTPUT_DIR': 'o7'},
+    {'N_BLOCK': 5, 'LR': 0.001, 'OUTPUT_DIR': 'o8'},
     # Add more parameter sets as needed
 ]
 
