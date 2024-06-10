@@ -802,3 +802,259 @@ def black(image):
 #nml_image = posterization(image, 10)
 #output_path = "test.png"
 #cv2.imwrite(output_path, nml_image)
+
+# additional filters
+def canny(image):
+    edges = cv2.Canny(image, 100, 200)
+    return edges
+
+def prewitt(image):
+    prewitt_kernel_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32)
+    prewitt_kernel_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
+
+    prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x)
+    prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y)
+
+    prewitt_combined = cv2.magnitude(prewitt_x, prewitt_y)
+
+    return prewitt_combined
+
+def unsharp_masking(image):
+    blurred_img = cv2.GaussianBlur(image, (5,5), 1.0)
+
+    mask = cv2.subtract(image, blurred_img)
+
+    sharpened_img = cv2.addWeighted(image, 1.5, blurred_img, -0.5, 0)
+
+    return sharpened_img
+
+def fourier(image):
+    fourier_trans = cv2.dft(np.float32(image), flags = cv2.DFT_COMPLEX_OUTPUT) 
+    fourier_shift = np.fft.fftshift(fourier_trans)
+
+    rows, cols = image.shape
+    crow, ccol = rows // 2, cols // 2
+
+    mask = np.zeros((rows, cols, 2), np.uint8)
+    mask[crow-15:crow+15, ccol-15:ccol+15] = 1
+    
+    fshift = fourier_shift * mask
+
+    f_ishift = np.fft.ifftshift(fshift)
+    img_back = cv2.idft(f_ishift)
+    img_back = cv2.magnitude(img_back[:,:,0], img_back[:,:,1])
+
+    return img_back
+
+def erosion(img):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE (5,5))
+
+    erosion_img = cv2.erode(img, kernel, iterations = 1)
+
+    return erosion_img
+
+def dilation(img):
+    kernel = np.ones((5, 5), np.uint8)
+
+    dilated_image = cv2.dilate(img, kernel, iterations=1)
+
+    return dilated_image
+
+def opening(img):
+    kernel = np.ones((5,5),np.uint8)
+    opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+def closing(img):
+    kernel = np.ones((5,5),np.uint8)
+    closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+
+    return closing
+
+def box(img):
+    
+    kernel_size = (5, 5)
+
+    blurred_image = cv2.blur(img, kernel_size)
+
+    return blurred_image
+
+def scharr_grad(img):
+
+    scharr_x = cv2.Scharr(img, cv2.CV_64F, 1, 0)
+    scharr_y = cv2.Scharr(img, cv2.CV_64F, 0, 1)
+
+    gradient_magnitude = np.sqrt(scharr_x**2 + scharr_y**2)
+
+    return gradient_magnitude
+
+def roberts_cross(img):
+    roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
+    roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
+
+    # Apply the kernels separately to the image
+    roberts_x_filtered = cv2.filter2D(img, -1, roberts_x)
+    roberts_y_filtered = cv2.filter2D(img, -1, roberts_y)
+
+    # Compute the magnitude of the gradient
+    gradient_magnitude = np.sqrt(roberts_x_filtered**2 + roberts_y_filtered**2)
+ 
+    return gradient_magnitude
+
+#might be same as erode check later
+def min(img):
+    kernel_size = (5, 5)
+
+    # Create a custom kernel with all elements set to 1
+    kernel = np.ones(kernel_size, np.uint8)
+
+    # Apply the minimum filter using erosion
+    min_filtered_image = cv2.erode(img, kernel)
+    
+    return min_filtered_image
+
+#might be same as dilate
+def max(img):
+    kernel_size = (5, 5)
+
+    # Create a custom kernel with all elements set to 1
+    kernel = np.ones(kernel_size, np.uint8)
+
+    # Apply the maximum filter using dilation
+    max_filtered_image = cv2.dilate(img, kernel)
+
+    return max_filtered_image
+
+def morph_grad(img):
+    kernel_size = (5, 5)
+
+    # Create a custom kernel with all elements set to 1
+    kernel = np.ones(kernel_size, np.uint8)
+
+    # Apply the morphological gradient filter
+    morphological_gradient = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, kernel)
+    
+    return morphological_gradient
+
+def morph_laplacian(img):
+    kernel = np.ones((3, 3), np.uint8)
+
+    # Apply morphological dilation
+    dilated_image = cv2.dilate(img, kernel)
+
+    # Apply morphological erosion
+    eroded_image = cv2.erode(img, kernel)
+
+    # Compute the Laplacian
+    laplacian = dilated_image - eroded_image
+
+    # Combine the original image with the Laplacian to enhance edges
+    morphological_laplacian = cv2.addWeighted(img, 1, laplacian, -1, 0)
+
+    return morphological_laplacian
+
+def morph_reconstruction(img):
+    # Define a marker image (e.g., with the same size as the original image)
+    marker = np.zeros_like(img, dtype=np.uint8)
+    marker[100:200, 100:200] = 255  # Example marker region
+
+    # Perform morphological reconstruction
+    reconstruction = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, marker)
+
+    return reconstruction
+
+def bottom_hat(img):
+    kernel_size = (5, 5)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
+
+    # Apply the bottom hat transformation
+    bottomhat = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel)
+
+    return bottom_hat
+
+def distance_transform(img):
+    _, binary_image = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
+
+    # Compute the distance transform
+    distance_transform = cv2.distanceTransform(binary_image, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+
+    # Normalize the distance transform for visualization
+    normalized_distance_transform = cv2.normalize(distance_transform, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+
+    return normalized_distance_transform
+
+def homomorphic(img):
+    log_image = np.log1p(np.float32(img))
+
+    # Perform a Fourier transform
+    f_transform = np.fft.fft2(log_image)
+
+    # Define the high-pass filter (e.g., Butterworth)
+    rows, cols = img.shape
+    crow, ccol = rows // 2, cols // 2
+    D = 30
+    n = 2
+    mask = np.zeros((rows, cols), np.uint8)
+    for i in range(rows):
+        for j in range(cols):
+            if np.sqrt((i - crow) ** 2 + (j - ccol) ** 2) > D:
+                mask[i, j] = 1
+    filter_applied = f_transform * (1 - mask)
+
+    # Perform an inverse Fourier transform
+    filtered_image = np.fft.ifft2(filter_applied)
+
+    # Exponentiate the filtered image to obtain the final enhanced image
+    enhanced_image = np.exp(np.real(filtered_image))
+
+    # Normalize the enhanced image
+    enhanced_image = cv2.normalize(enhanced_image, None, 0, 255, cv2.NORM_MINMAX)
+
+    # Convert the enhanced image to uint8
+    enhanced_image = np.uint8(enhanced_image)
+
+    return enhanced_image
+
+def structure_tensor(img):
+    gradient_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+    gradient_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+
+    # Compute the structure tensor
+    structure_tensor = np.zeros((img.shape[0], img.shape[1], 2, 2), dtype=np.float64)
+    structure_tensor[:, :, 0, 0] = gradient_x * gradient_x
+    structure_tensor[:, :, 0, 1] = gradient_x * gradient_y
+    structure_tensor[:, :, 1, 0] = gradient_x * gradient_y
+    structure_tensor[:, :, 1, 1] = gradient_y * gradient_y
+
+    # Compute the eigenvalues and eigenvectors of the structure tensor
+    eigenvalues, eigenvectors = cv2.cornerEigenValsAndVecs(structure_tensor, blockSize=3, ksize=3)
+
+    # Perform corner detection using the eigenvalues
+    corners = cv2.cornerHarris(img, blockSize=3, ksize=3, k=0.04)
+
+    return corners
+
+# the filter unblurs the original img
+# blurred in purpose then applied richardson
+def richardson_lucy(img):
+    blurred_img = cv2.GaussianBlur(img, (5,5), 1.0)
+    psf = np.ones((5, 5)) / 25  # Example PSF (5x5 averaging filter)
+
+    # Initialize the estimate of the original image
+    estimate = np.copy(blurred_img)
+
+    # Number of iterations
+    num_iterations = 10
+
+    # Richardson-Lucy deconvolution
+    for _ in range(num_iterations):
+        # Estimate the blurred image from the current estimate
+        estimated_blurred = cv2.filter2D(estimate, -1, psf)
+    
+        # Compute the error between the observed blurred image and the estimated blurred image
+        error = blurred_img / (estimated_blurred + 1e-8)
+    
+        # Update the estimate using the error and the transpose of the PSF
+        estimate *= cv2.filter2D(error, -1, psf.T)
+    
+    return estimate
+
