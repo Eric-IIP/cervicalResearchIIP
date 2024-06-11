@@ -803,7 +803,10 @@ def black(image):
 #output_path = "test.png"
 #cv2.imwrite(output_path, nml_image)
 
-# additional filters
+###########################################################################
+#### additional filters
+###########################################################################
+
 def canny(image):
     edges = cv2.Canny(image, 100, 200)
     return edges
