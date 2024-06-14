@@ -52,6 +52,64 @@ class InputFeature(Enum):
     BLT1 = 'BLT1'
     BLT2 = 'BLT2'
     OOO_ = 'OOO_'
+    ## Custom added features from now on
+
+    # #CANNY FILTER
+    # CAN1 = 'CAN1'
+    # CAN2 = 'CAN2'
+    # CAN3 = 'CAN3'
+
+    # #PREWITT FILTER
+    # PRE1 = 'PRE1'
+    # PRE2 = 'PRE2'
+    # PRE3 = 'PRE3'
+    # PRE4 = 'PRE4'
+
+    # #UNSHARPENING FILTER
+    # UNS1 = 'UNS1'
+    # UNS2 = 'UNS2'
+    # UNS3 = 'UNS3'
+    # UNS4 = 'UNS4'
+    # UNS5 = 'UNS5'
+
+    # #FOURIER FILTER
+    # FOU1 = 'FOU1'
+    # FOU2 = 'FOU2'
+    # FOU3 = 'FOU3'
+    # FOU4 = 'FOU4'
+    # FOU5 = 'FOU5'
+    # FOU6 = 'FOU6'
+
+    # #EROSION FILTER
+    # ERO1 = 'ERO1'
+    # ERO2 = 'ERO2'
+    # ERO3 = 'ERO3'
+    # ERO4 = 'ERO4'
+    # ERO5 = 'ERO5'
+    # ERO6 = 'ERO6'
+
+    # #OPENING FILTER
+    # OPN1 = 'OPN1'
+    # OPN2 = 'OPN2'
+    # OPN3 = 'OPN3'
+    # OPN4 = 'OPN4'
+    # OPN5 = 'OPN5'
+
+    # #CLOSING FILTER
+    # CLO1 = 'CLO1'
+    # CLO2 = 'CLO2'
+    # CLO3 = 'CLO3'
+    # CLO4 = 'CLO4'
+    # CLO5 = 'CLO5'
+
+
+
+
+
+
+    
+    
+
 
     def __str__(self):
         return self.name
