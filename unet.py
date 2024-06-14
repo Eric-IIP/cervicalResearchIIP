@@ -301,6 +301,7 @@ class UNet(nn.Module):
         
         # uncommented this part for original UNet
         self.in_channels = in_channels
+        print("Input channel count" + str(self.in_channels))
         # self.in_channels = 1
         self.out_channels = out_channels
         self.n_blocks = n_blocks
