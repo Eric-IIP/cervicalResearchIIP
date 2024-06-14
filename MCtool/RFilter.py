@@ -807,41 +807,103 @@ def black(image):
 #### additional filters
 ###########################################################################
 
-def canny(image):
-    edges = cv2.Canny(image, 100, 200)
+def canny(image, threshold1, threshold2):
+    
+    height, width = image.shape
+        
+    image = np.asarray(image, dtype=np.uint8).reshape((height, width))
+    #chaning the thresholds
+    edges = cv2.Canny(image, threshold1, threshold2)
+
     return edges
 
-def prewitt(image):
+def prewitt(image, variation):
+
+    #default kernel
     prewitt_kernel_x = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32)
     prewitt_kernel_y = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32)
 
-    prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x)
-    prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y)
+    #modified  kernel
+    prewitt_kernel_x1 = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]], dtype=np.float32)
+    prewitt_kernel_y1 = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]], dtype=np.float32)
+
+    # sharpened kernel
+    prewitt_kernel_x2 = np.array([[2, 0, -2], [2, 0, -2], [2, 0, -2]], dtype=np.float32)
+    prewitt_kernel_y2 = np.array([[2, 2, 2], [0, 0, 0], [-2, -2, -2]], dtype=np.float32)
+
+    #softened kernel
+    prewitt_kernel_x3 = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]], dtype=np.float32) / 2
+    prewitt_kernel_y3 = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]], dtype=np.float32) / 2
+
+
+    if variation == 0:
+        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x)
+        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y)
+    elif variation == 1:
+        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x1)
+        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y1)
+    elif variation == 2:
+        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x2)
+        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y2)
+
+    elif variation == 3:
+        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x3)
+        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y3)
 
     prewitt_combined = cv2.magnitude(prewitt_x, prewitt_y)
 
     return prewitt_combined
 
-def unsharp_masking(image):
-    blurred_img = cv2.GaussianBlur(image, (5,5), 1.0)
+def unsharp_masking(image, kernel, sigmax, weight1, weight2):
+    # kernel variable is for different gaussian kernels
+    # sigmax is for modifying gaussian blur as well
+    # weight can be modified for sharpening
+    blurred_img = cv2.GaussianBlur(image, kernel, sigmax)
 
     mask = cv2.subtract(image, blurred_img)
 
-    sharpened_img = cv2.addWeighted(image, 1.5, blurred_img, -0.5, 0)
+    sharpened_img = cv2.addWeighted(image, weight1, blurred_img, weight2, 0)
 
     return sharpened_img
 
-def fourier(image):
+def fourier(image, variation):
+    height, width = image.shape
+        
+    image = np.asarray(image, dtype=np.uint8).reshape((height, width))
     fourier_trans = cv2.dft(np.float32(image), flags = cv2.DFT_COMPLEX_OUTPUT) 
     fourier_shift = np.fft.fftshift(fourier_trans)
 
     rows, cols = image.shape
     crow, ccol = rows // 2, cols // 2
-
     mask = np.zeros((rows, cols, 2), np.uint8)
-    mask[crow-15:crow+15, ccol-15:ccol+15] = 1
     
+    if variation == 0:
+        mask[crow-15:crow+15, ccol-15:ccol+15] = 1
+    # smaller mask
+    elif variation == 1:
+        mask[crow-10:crow+10, ccol-10:ccol+10] = 1
+    # larger mask
+    elif variation == 2:
+        mask[crow-30:crow+30, ccol-30:ccol+30] = 1
+    # horizontal band-pass filter
+    elif variation == 3:
+        mask[crow-5:crow+5, :] = 1
+    # vertical band-pass filter
+    elif variation == 4:
+        mask[:, ccol-5:ccol+5] = 1
+    # diagonal band-pass filter
+    elif variation == 5:
+        for i in range(-10, 11):
+            mask[crow+i, ccol+i] = 1
+    print("start")
+    print("foutier shift")
+    print(fourier_shift)
+    print("mask")
+    print(mask)
     fshift = fourier_shift * mask
+    print("fshift")
+    print(fshift)
+    print("end")
 
     f_ishift = np.fft.ifftshift(fshift)
     img_back = cv2.idft(f_ishift)
@@ -849,27 +911,117 @@ def fourier(image):
 
     return img_back
 
-def erosion(img):
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE (5,5))
+def erosion(img, variation):
+    # default erosion
+    if variation == 0:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        erosion_img = cv2.erode(img, kernel, iterations = 1)
 
-    erosion_img = cv2.erode(img, kernel, iterations = 1)
+    #smaller elliptical kernel
+    elif variation == 1:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+        erosion_img = cv2.erode(img, kernel, iterations = 1)
+
+    #larger elliptical kernel
+    elif variation == 2:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+        erosion_img = cv2.erode(img, kernel, iterations = 1)
+
+    #rectangular kernel
+    elif variation == 3:
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+        erosion_img = cv2.erode(img, kernel, iterations = 1)
+
+    #cross-shaped kernel
+    elif variation == 4:
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5,5))
+        erosion_img = cv2.erode(img, kernel, iterations = 1)
+    
+    #more iterations
+    elif variation == 5:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        erosion_img = cv2.erode(img, kernel, iterations = 3)
 
     return erosion_img
 
-def dilation(img):
-    kernel = np.ones((5, 5), np.uint8)
+def dilation(img, variation):
 
-    dilated_image = cv2.dilate(img, kernel, iterations=1)
+    #default dilation
+    if variation == 0:
+        kernel = np.ones((5, 5), np.uint8)  
+        dilated_image = cv2.dilate(img, kernel, iterations=1)
+    #smaller kernel
+    elif variation == 1:
+        kernel = np.ones((3, 3), np.uint8)  
+        dilated_image = cv2.dilate(img, kernel, iterations=1)
+    #larger kernel
+    elif variation == 2:
+        kernel = np.ones((7, 7), np.uint8)  
+        dilated_image = cv2.dilate(img, kernel, iterations=1)
+    # elliptical kernel
+    elif variation == 3:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        dilated_image = cv2.dilate(img, kernel, iterations=1)
+    # cross kernel
+    elif variation == 4:
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+        dilated_image = cv2.dilate(img, kernel, iterations=1)
+    # more iterations
+    elif variation == 5:
+        kernel = np.ones((5, 5), np.uint8)  
+        dilated_image = cv2.dilate(img, kernel, iterations=3)
+
 
     return dilated_image
 
-def opening(img):
-    kernel = np.ones((5,5),np.uint8)
-    opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+def opening(img, variation):
 
-def closing(img):
-    kernel = np.ones((5,5),np.uint8)
-    closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #default opening filter
+    if variation == 0:
+        kernel = np.ones((5,5),np.uint8)
+        opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+    #smaller kernel
+    elif variation == 1:
+        kernel = np.ones((3,3),np.uint8)
+        opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+    #bigger kernel
+    elif variation == 2:
+        kernel = np.ones((7,7),np.uint8)
+        opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+    #elliptical kernel
+    elif variation == 3:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+        opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+    #cross-shaped kernel
+    elif variation == 4:
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5,5))
+        opening  = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+    return opening
+
+def closing(img, variation):
+    if variation == 0:
+        kernel = np.ones((5,5),np.uint8)
+        closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #smaller kernel
+    elif variation == 1:
+        kernel = np.ones((3,3),np.uint8)
+        closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #larger kernel
+    elif variation == 2:
+        kernel = np.ones((7,7),np.uint8)
+        closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #elliptical kernel
+    elif variation == 3:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #cross-shaped kernel
+    elif variation == 4:
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+        closing  = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
 
     return closing
 
