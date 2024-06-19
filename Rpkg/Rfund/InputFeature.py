@@ -9,11 +9,11 @@ class InputFeature(Enum):
     """
     # GRY_ = 'GRY_'
     # NML1 = 'NML1'
-    NML2 = 'NML2'
+    # NML2 = 'NML2'
     # NML3 = 'NML3'
     # TOP1 = 'TOP1'
     # TOP2 = 'TOP2'
-    # TOP3 = 'TOP3'
+    TOP3 = 'TOP3'
     # TOP4 = 'TOP4'
     # SBLX = 'SBLX'
     # SBLY = 'SBLY'
