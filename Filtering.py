@@ -194,98 +194,182 @@ def single_image(img, image_type, nml_on=True):
     ################# Custom added filters
 
     # CANNY FILTER
-    # if image_type == InputFeature.CAN1:
-    #     f_img = RFilter.canny(img, 50, 150)
+    elif image_type == InputFeature.CAN1:
+        f_img = RFilter.canny(img, 50, 150)
 
-    # elif image_type == InputFeature.CAN2:
-    #     f_img = RFilter.canny(img, 100, 200)
+    elif image_type == InputFeature.CAN2:
+        f_img = RFilter.canny(img, 100, 200)
 
-    # elif image_type == InputFeature.CAN3:
-    #     f_img = RFilter.canny(img, 150, 250)
+    elif image_type == InputFeature.CAN3:
+        f_img = RFilter.canny(img, 150, 250)
 
-    # #PREWITT FILTER
-    # elif image_type == InputFeature.PRE1:
-    #     f_img = RFilter.prewitt(img, 0)
+    #PREWITT FILTER
+    elif image_type == InputFeature.PRE1:
+        f_img = RFilter.prewitt(img, 0)
 
-    # elif image_type == InputFeature.PRE2:
-    #     f_img = RFilter.prewitt(img, 1)
+    elif image_type == InputFeature.PRE2:
+        f_img = RFilter.prewitt(img, 1)
 
-    # elif image_type == InputFeature.PRE3:
-    #     f_img = RFilter.prewitt(img, 2)
+    elif image_type == InputFeature.PRE3:
+        f_img = RFilter.prewitt(img, 2)
 
-    # elif image_type == InputFeature.PRE4:
-    #     f_img = RFilter.prewitt(img, 3)
+    elif image_type == InputFeature.PRE4:
+        f_img = RFilter.prewitt(img, 3)
 
-    # #UNSHARPENING FILTER
-    # elif image_type == InputFeature.UNS1:
-    #     f_img = RFilter.unsharp_masking(img, (3,3), 1.0, 1.5, -0.5)
-    # elif image_type == InputFeature.UNS2:
-    #     f_img = RFilter.unsharp_masking(img, (7,7), 1.0, 1.5, -0.5)
-    # elif image_type == InputFeature.UNS3:
-    #     f_img = RFilter.unsharp_masking(img, (5,5), 2.0, 1.5, -0.5)
-    # elif image_type == InputFeature.UNS4:
-    #     f_img = RFilter.unsharp_masking(img, (5,5), 1.0, 1.3, -0.3)
-    # elif image_type == InputFeature.UNS5:
-    #     f_img = RFilter.unsharp_masking(img, (5,5), 1.0, 2.0, -1.0)
-
-    # #FOURIER FILTER
-    # elif image_type == InputFeature.FOU1:
-    #     f_img = RFilter.fourier(img, 0)
-    # elif image_type == InputFeature.FOU2:
-    #     f_img = RFilter.fourier(img, 1)
-    # elif image_type == InputFeature.FOU3:
-    #     f_img = RFilter.fourier(img, 2)
-    # elif image_type == InputFeature.FOU4:
-    #     f_img = RFilter.fourier(img, 3)
-    # elif image_type == InputFeature.FOU5:
-    #     f_img = RFilter.fourier(img, 4)
-    # elif image_type == InputFeature.FOU6:
-    #     f_img = RFilter.fourier(img, 5)
-    
-    # #EROSION FILTER
-    # elif image_type == InputFeature.ERO1:
-    #     f_img = RFilter.erosion(img, 0)
-    # elif image_type == InputFeature.ERO2:
-    #     f_img = RFilter.erosion(img, 1)
-    # elif image_type == InputFeature.ERO3:
-    #     f_img = RFilter.erosion(img, 2)
-    # elif image_type == InputFeature.ERO4:
-    #     f_img = RFilter.erosion(img, 3)
-    # elif image_type == InputFeature.ERO5:
-    #     f_img = RFilter.erosion(img, 4)
-    # elif image_type == InputFeature.ERO6:
-    #     f_img = RFilter.erosion(img, 5)
-    
-    # #OPENING FILTER
-    # elif image_type == InputFeature.OPN1:
-    #     f_img = RFilter.opening(img, 0)
-    # elif image_type == InputFeature.OPN2:
-    #     f_img = RFilter.opening(img, 1)
-    # elif image_type == InputFeature.OPN3:
-    #     f_img = RFilter.opening(img, 2)
-    # elif image_type == InputFeature.OPN4:
-    #     f_img = RFilter.opening(img, 3)
-    # elif image_type == InputFeature.OPN5:
-    #     f_img = RFilter.opening(img, 4)
-    
-    # #CLOSING FILTER
-    # elif image_type == InputFeature.CLO1:
-    #     f_img = RFilter.closing(img, 0)
-    # elif image_type == InputFeature.CLO2:
-    #     f_img = RFilter.closing(img, 1)
-    # elif image_type == InputFeature.CLO3:
-    #     f_img = RFilter.closing(img, 2)
-    # elif image_type == InputFeature.CLO4:
-    #     f_img = RFilter.closing(img, 3)
-    # elif image_type == InputFeature.CLO5:
-    #     f_img = RFilter.closing(img, 4)
-    
-    
+    #UNSHARPENING FILTER
+    elif image_type == InputFeature.UNS1:
+        f_img = RFilter.unsharp_masking(img, (3,3), 1.0, 1.5, -0.5)
+    elif image_type == InputFeature.UNS2:
+        f_img = RFilter.unsharp_masking(img, (7,7), 1.0, 1.5, -0.5)
+    elif image_type == InputFeature.UNS3:
+        f_img = RFilter.unsharp_masking(img, (5,5), 2.0, 1.5, -0.5)
+    elif image_type == InputFeature.UNS4:
+        f_img = RFilter.unsharp_masking(img, (5,5), 1.0, 1.3, -0.3)
+    elif image_type == InputFeature.UNS5:
+        f_img = RFilter.unsharp_masking(img, (5,5), 1.0, 2.0, -1.0)
 
     
-
+    #EROSION FILTER
+    elif image_type == InputFeature.ERO1:
+        f_img = RFilter.erosion(img, 0)
+    elif image_type == InputFeature.ERO2:
+        f_img = RFilter.erosion(img, 1)
+    elif image_type == InputFeature.ERO3:
+        f_img = RFilter.erosion(img, 2)
+    elif image_type == InputFeature.ERO4:
+        f_img = RFilter.erosion(img, 3)
+    elif image_type == InputFeature.ERO5:
+        f_img = RFilter.erosion(img, 4)
+    elif image_type == InputFeature.ERO6:
+        f_img = RFilter.erosion(img, 5)
     
+    #OPENING FILTER
+    elif image_type == InputFeature.OPN1:
+        f_img = RFilter.opening(img, 0)
+    elif image_type == InputFeature.OPN2:
+        f_img = RFilter.opening(img, 1)
+    elif image_type == InputFeature.OPN3:
+        f_img = RFilter.opening(img, 2)
+    elif image_type == InputFeature.OPN4:
+        f_img = RFilter.opening(img, 3)
+    elif image_type == InputFeature.OPN5:
+        f_img = RFilter.opening(img, 4)
+    
+    #CLOSING FILTER
+    elif image_type == InputFeature.CLO1:
+        f_img = RFilter.closing(img, 0)
+    elif image_type == InputFeature.CLO2:
+        f_img = RFilter.closing(img, 1)
+    elif image_type == InputFeature.CLO3:
+        f_img = RFilter.closing(img, 2)
+    elif image_type == InputFeature.CLO4:
+        f_img = RFilter.closing(img, 3)
+    elif image_type == InputFeature.CLO5:
+        f_img = RFilter.closing(img, 4)
+        
+    #FOURIER FILTER
+    elif image_type == InputFeature.FOU1:
+        f_img= RFilter.fourier(img, filter_type='low_pass', d0=50)
+    elif image_type == InputFeature.FOU2:
+        f_img = RFilter.fourier(img, filter_type='high_pass', d0=50)
+    elif image_type == InputFeature.FOU3:
+        f_img= RFilter.fourier(img, filter_type='band_pass', params=(50, 100))
+    elif image_type == InputFeature.FOU4:
+        f_img = RFilter.fourier(img, filter_type='notch', params=((100, 100), 20))
 
+    #BOXING FILTER
+    elif image_type == InputFeature.BOX1:
+        f_img = RFilter.box(img, (3,3))
+    elif image_type == InputFeature.BOX2:
+        f_img = RFilter.box(img, (5,5))
+    elif image_type == InputFeature.BOX3:
+        f_img = RFilter.box(img, (7,7))
+    elif image_type == InputFeature.BOX4:
+        f_img = RFilter.box(img, (9,9))
+
+    #SCHARR GRADIENT FILTER
+    elif image_type == InputFeature.SCH1:
+        f_img = RFilter.scharr_grad(img, 1)
+    elif image_type == InputFeature.SCH2:
+        f_img = RFilter.scharr_grad(img, 10)
+    elif image_type == InputFeature.SCH3:
+        f_img = RFilter.scharr_grad(img, 0.1)
+    elif image_type == InputFeature.SCH4:
+        f_img = RFilter.scharr_grad(img, 5)
+
+    #ROBERTS CROSS FILTER
+    elif image_type == InputFeature.ROB1:
+        f_img = RFilter.roberts_cross(img, 1)
+    elif image_type == InputFeature.ROB2:
+        f_img = RFilter.roberts_cross(img, 2)
+    elif image_type == InputFeature.ROB3:
+        f_img = RFilter.roberts_cross(img, 3)
+    elif image_type == InputFeature.ROB4:
+        f_img = RFilter.roberts_cross(img, 4)
+
+    #MIN FILTER
+    elif image_type == InputFeature.MIN1:
+        f_img = RFilter.min(img, (3,3))
+    elif image_type == InputFeature.MIN2:
+        f_img = RFilter.min(img, (5,5))
+    elif image_type == InputFeature.MIN3:
+        f_img = RFilter.min(img, (7,7))
+    elif image_type == InputFeature.MIN4:
+        f_img = RFilter.min(img, (9,9))
+    
+    #MAX FILTER
+    elif image_type == InputFeature.MAX1:
+        f_img = RFilter.max(img, (3,3))
+    elif image_type == InputFeature.MAX2:
+        f_img = RFilter.max(img, (5,5))
+    elif image_type == InputFeature.MAX3:
+        f_img = RFilter.max(img, (7,7))
+    elif image_type == InputFeature.MAX4:
+        f_img = RFilter.max(img, (9,9))
+
+    # MORPH GRADIENT FILTER
+    elif image_type == InputFeature.MRG1:
+        f_img = RFilter.morph_grad(img, (3,3))
+    elif image_type == InputFeature.MRG2:
+        f_img = RFilter.morph_grad(img, (5,5))
+    elif image_type == InputFeature.MRG3:
+        f_img = RFilter.morph_grad(img, (7,7))
+    elif image_type == InputFeature.MRG4:
+        f_img = RFilter.morph_grad(img, (9,9))
+
+    # MORPH LAPLACIAN FILTER
+    elif image_type == InputFeature.MRL1:
+        f_img = RFilter.morph_laplacian(img, (3,3))
+    elif image_type == InputFeature.MRL2:
+        f_img = RFilter.morph_laplacian(img, (5,5))
+    elif image_type == InputFeature.MRL3:
+        f_img = RFilter.morph_laplacian(img, (7,7))
+    elif image_type == InputFeature.MRL4:
+        f_img = RFilter.morph_laplacian(img, (9,9))
+
+    # BOTTOM HAT FILTER
+    elif image_type == InputFeature.BTM1:
+        f_img = RFilter.bottom_hat_transform(img, (3,3))
+    elif image_type == InputFeature.BTM2:
+        f_img = RFilter.bottom_hat_transform(img, (5,5))
+    elif image_type == InputFeature.BTM3:
+        f_img = RFilter.bottom_hat_transform(img, (7,7))
+    elif image_type == InputFeature.BTM4:
+        f_img = RFilter.bottom_hat_transform(img, (9,9))
+
+    #DISTANCE TRANSFORM
+    elif image_type == InputFeature.DST_:
+        f_img = RFilter.distance_transform(img)
+    
+    #HOMOMORPHIC FILTER
+    elif image_type == InputFeature.HOM_:
+        f_img = RFilter.homomorphic(img)
+    # STRUCTURE TENSOR FILTER
+    #elif image_type == InputFeature.STR_:
+    #   f_img = RFilter.structure_tensor(img)
+    # RICHARDSON LUCY FILTER
+    elif image_type == InputFeature.RIC_:
+        f_img = RFilter.richardson_lucy(img)
 
     else:
         print("image_type is wrong!")
