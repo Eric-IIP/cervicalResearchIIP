@@ -866,48 +866,64 @@ def unsharp_masking(image, kernel, sigmax, weight1, weight2):
 
     return sharpened_img
 
-def fourier(image, variation):
-    height, width = image.shape
-        
-    image = np.asarray(image, dtype=np.uint8).reshape((height, width))
-    fourier_trans = cv2.dft(np.float32(image), flags = cv2.DFT_COMPLEX_OUTPUT) 
-    fourier_shift = np.fft.fftshift(fourier_trans)
 
-    rows, cols = image.shape
+def fourier(image, filter_type='low_pass', d0=50, params=None):
+    # Convert image to grayscale if it's not already
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = np.copy(image)
+
+    # Perform FFT
+    f = np.fft.fft2(gray)
+    fshift = np.fft.fftshift(f)
+
+    # Frequency spectrum
+    magnitude_spectrum = 20 * np.log(np.abs(fshift))
+
+    # Constructing the filter
+    rows, cols = gray.shape
     crow, ccol = rows // 2, cols // 2
-    mask = np.zeros((rows, cols, 2), np.uint8)
-    
-    if variation == 0:
-        mask[crow-15:crow+15, ccol-15:ccol+15] = 1
-    # smaller mask
-    elif variation == 1:
-        mask[crow-10:crow+10, ccol-10:ccol+10] = 1
-    # larger mask
-    elif variation == 2:
-        mask[crow-30:crow+30, ccol-30:ccol+30] = 1
-    # horizontal band-pass filter
-    elif variation == 3:
-        mask[crow-5:crow+5, :] = 1
-    # vertical band-pass filter
-    elif variation == 4:
-        mask[:, ccol-5:ccol+5] = 1
-    # diagonal band-pass filter
-    elif variation == 5:
-        for i in range(-10, 11):
-            mask[crow+i, ccol+i] = 1
-    print("start")
-    print("foutier shift")
-    print(fourier_shift)
-    print("mask")
-    print(mask)
-    fshift = fourier_shift * mask
-    print("fshift")
-    print(fshift)
-    print("end")
 
+    # Determine the type of filter and apply accordingly
+    if filter_type == 'low_pass':
+        mask = np.zeros((rows, cols), np.uint8)
+        mask[crow - d0:crow + d0, ccol - d0:ccol + d0] = 1
+
+    elif filter_type == 'high_pass':
+        mask = np.ones((rows, cols), np.uint8)
+        mask[crow - d0:crow + d0, ccol - d0:ccol + d0] = 0
+
+    elif filter_type == 'band_pass':
+        if params is None or len(params) < 2:
+            raise ValueError("Band-pass filter requires parameters 'd0' and 'd1'.")
+        d0, d1 = params
+        mask = np.zeros((rows, cols), np.uint8)
+        mask[crow - d1:crow + d1, ccol - d1:ccol + d1] = 1
+        mask[crow - d0:crow + d0, ccol - d0:ccol + d0] = 0
+
+    elif filter_type == 'notch':
+        if params is None or len(params) < 2 or not isinstance(params[0], tuple):
+            raise ValueError("Notch filter requires parameters 'center' (tuple) and 'radius'.")
+        center, radius = params
+        mask = np.ones((rows, cols), np.uint8)
+        y, x = np.ogrid[:rows, :cols]
+        mask_area = (x - center[0]) ** 2 + (y - center[1]) ** 2 <= radius ** 2
+        mask[mask_area] = 0
+
+    else:
+        raise ValueError(f"Unknown filter type '{filter_type}'.")
+
+    # Apply mask and inverse transform
+    fshift = fshift * mask
     f_ishift = np.fft.ifftshift(fshift)
-    img_back = cv2.idft(f_ishift)
-    img_back = cv2.magnitude(img_back[:,:,0], img_back[:,:,1])
+    img_back = np.fft.ifft2(f_ishift)
+    img_back = np.abs(img_back)
+
+    img_back = cv2.normalize(img_back, None, 0, 255, cv2.NORM_MINMAX)
+    #img_back = np.uint8(img_back)
+    #img_back = cv2.equalizeHist(img_back)
+
 
     return img_back
 
@@ -1025,30 +1041,47 @@ def closing(img, variation):
 
     return closing
 
-def box(img):
-    
-    kernel_size = (5, 5)
+def box(img, kernel_size):
 
     blurred_image = cv2.blur(img, kernel_size)
 
     return blurred_image
 
-def scharr_grad(img):
+def scharr_grad(img, scale):
 
-    scharr_x = cv2.Scharr(img, cv2.CV_64F, 1, 0)
-    scharr_y = cv2.Scharr(img, cv2.CV_64F, 0, 1)
+    scharr_x = cv2.Scharr(img, cv2.CV_64F, 1, 0) * scale
+    scharr_y = cv2.Scharr(img, cv2.CV_64F, 0, 1) * scale
 
     gradient_magnitude = np.sqrt(scharr_x**2 + scharr_y**2)
 
     return gradient_magnitude
 
-def roberts_cross(img):
+def roberts_cross(img, variation):
     roberts_x = np.array([[1, 0], [0, -1]], dtype=np.float32)
     roberts_y = np.array([[0, 1], [-1, 0]], dtype=np.float32)
 
-    # Apply the kernels separately to the image
-    roberts_x_filtered = cv2.filter2D(img, -1, roberts_x)
-    roberts_y_filtered = cv2.filter2D(img, -1, roberts_y)
+    larger_roberts_x = np.array([[1, 0, 0], [0, -2, 0], [0, 0, 1]], dtype=np.float32)
+    larger_roberts_y = np.array([[0, 1, 0], [-1, -2, 1], [0, 0, 0]], dtype=np.float32)
+
+    horizontal_roberts_x = np.array([[1, 0, -1], [0, 0, 0], [0, 0, 0]], dtype=np.float32)
+    horizontal_roberts_y = np.array([[0, 1, 0], [0, 0, 0], [0, -1, 0]], dtype=np.float32)
+
+    vertical_roberts_x = np.array([[0, 0, 0], [1, 0, -1], [0, 0, 0]], dtype=np.float32)
+    vertical_roberts_y = np.array([[0, 1, 0], [0, 0, 0], [0, -1, 0]], dtype=np.float32)
+
+    if variation == 1:
+        # Apply the kernels separately to the image
+        roberts_x_filtered = cv2.filter2D(img, -1, roberts_x)
+        roberts_y_filtered = cv2.filter2D(img, -1, roberts_y)
+    elif variation == 2:
+        roberts_x_filtered = cv2.filter2D(img, -1, larger_roberts_x)
+        roberts_y_filtered = cv2.filter2D(img, -1, larger_roberts_y)
+    elif variation == 3:
+        roberts_x_filtered = cv2.filter2D(img, -1, horizontal_roberts_x)
+        roberts_y_filtered = cv2.filter2D(img, -1, horizontal_roberts_y)
+    elif variation == 4:
+        roberts_x_filtered = cv2.filter2D(img, -1, vertical_roberts_x)
+        roberts_y_filtered = cv2.filter2D(img, -1, vertical_roberts_y)
 
     # Compute the magnitude of the gradient
     gradient_magnitude = np.sqrt(roberts_x_filtered**2 + roberts_y_filtered**2)
@@ -1056,8 +1089,7 @@ def roberts_cross(img):
     return gradient_magnitude
 
 #might be same as erode check later
-def min(img):
-    kernel_size = (5, 5)
+def min(img, kernel_size):
 
     # Create a custom kernel with all elements set to 1
     kernel = np.ones(kernel_size, np.uint8)
@@ -1068,8 +1100,7 @@ def min(img):
     return min_filtered_image
 
 #might be same as dilate
-def max(img):
-    kernel_size = (5, 5)
+def max(img, kernel_size):
 
     # Create a custom kernel with all elements set to 1
     kernel = np.ones(kernel_size, np.uint8)
@@ -1079,8 +1110,7 @@ def max(img):
 
     return max_filtered_image
 
-def morph_grad(img):
-    kernel_size = (5, 5)
+def morph_grad(img, kernel_size):
 
     # Create a custom kernel with all elements set to 1
     kernel = np.ones(kernel_size, np.uint8)
@@ -1090,8 +1120,8 @@ def morph_grad(img):
     
     return morphological_gradient
 
-def morph_laplacian(img):
-    kernel = np.ones((3, 3), np.uint8)
+def morph_laplacian(img, kernel_size):
+    kernel = np.ones(kernel_size, np.uint8)
 
     # Apply morphological dilation
     dilated_image = cv2.dilate(img, kernel)
@@ -1107,28 +1137,17 @@ def morph_laplacian(img):
 
     return morphological_laplacian
 
-def morph_reconstruction(img):
-    # Define a marker image (e.g., with the same size as the original image)
-    marker = np.zeros_like(img, dtype=np.uint8)
-    marker[100:200, 100:200] = 255  # Example marker region
-
-    # Perform morphological reconstruction
-    reconstruction = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, marker)
-
-    return reconstruction
-
-def bottom_hat(img):
-    kernel_size = (5, 5)
+def bottom_hat_transform(img, kernel_size):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
 
     # Apply the bottom hat transformation
-    bottomhat = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel)
+    bottom_hat = cv2.morphologyEx(img, cv2.MORPH_BLACKHAT, kernel)
 
     return bottom_hat
 
 def distance_transform(img):
     _, binary_image = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
-
+    binary_image = cv2.convertScaleAbs(binary_image)
     # Compute the distance transform
     distance_transform = cv2.distanceTransform(binary_image, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
 
@@ -1169,24 +1188,28 @@ def homomorphic(img):
 
     return enhanced_image
 
-def structure_tensor(img):
-    gradient_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-    gradient_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
+# bugged
+# def structure_tensor(img):
+#     gradient_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
+#     gradient_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
 
-    # Compute the structure tensor
-    structure_tensor = np.zeros((img.shape[0], img.shape[1], 2, 2), dtype=np.float64)
-    structure_tensor[:, :, 0, 0] = gradient_x * gradient_x
-    structure_tensor[:, :, 0, 1] = gradient_x * gradient_y
-    structure_tensor[:, :, 1, 0] = gradient_x * gradient_y
-    structure_tensor[:, :, 1, 1] = gradient_y * gradient_y
+#     # Compute the structure tensor
+#     structure_tensor = np.zeros((img.shape[0], img.shape[1], 2, 2), dtype=np.float32)
+#     structure_tensor[:, :, 0, 0] = gradient_x * gradient_x
+#     structure_tensor[:, :, 0, 1] = gradient_x * gradient_y
+#     structure_tensor[:, :, 1, 0] = gradient_y * gradient_x
+#     structure_tensor[:, :, 1, 1] = gradient_y * gradient_y
+#     # Reshape structure_tensor to fit cv2.cornerEigenValsAndVecs input requirements
+#     structure_tensor_reshaped = structure_tensor.reshape((img.shape[0], img.shape[1], 4))
+#     structure_tensor_reshaped = structure_tensor_reshaped.astype(np.float32)
 
-    # Compute the eigenvalues and eigenvectors of the structure tensor
-    eigenvalues, eigenvectors = cv2.cornerEigenValsAndVecs(structure_tensor, blockSize=3, ksize=3)
+#     # Compute the eigenvalues and eigenvectors of the structure tensor
+#     eigenvalues, eigenvectors = cv2.cornerEigenValsAndVecs(structure_tensor_reshaped, blockSize=3, ksize=3)
 
-    # Perform corner detection using the eigenvalues
-    corners = cv2.cornerHarris(img, blockSize=3, ksize=3, k=0.04)
+#     # Perform corner detection using the eigenvalues
+#     corners = cv2.cornerHarris(img, blockSize=3, ksize=3, k=0.04)
 
-    return corners
+#     return corners
 
 # the filter unblurs the original img
 # blurred in purpose then applied richardson
