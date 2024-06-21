@@ -1041,6 +1041,7 @@ def closing(img, variation):
 
     return closing
 
+# not used due tot the reason that it is basically same as mean filter
 def box(img, kernel_size):
 
     blurred_image = cv2.blur(img, kernel_size)
