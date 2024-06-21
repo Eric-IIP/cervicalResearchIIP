@@ -100,11 +100,11 @@ class InputFeature(Enum):
     CLO4 = 'CLO4'
     CLO5 = 'CLO5'
 
-    #BOX FILTER
-    BOX1 = 'BOX1'
-    BOX2 = 'BOX2'
-    BOX3 = 'BOX3'
-    BOX4 = 'BOX4'
+    #BOX FILTER same as mean apparently so commented out
+    # BOX1 = 'BOX1'
+    # BOX2 = 'BOX2'
+    # BOX3 = 'BOX3'
+    # BOX4 = 'BOX4'
 
     #SCHARR GRADIENT FILTER
     SCH1 = 'SCH1'
