@@ -10,21 +10,21 @@ import tempfile
 
 
 parameter_sets = [
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '1-1', 'INPUT': 'N1-', 'ANNEALING': 'N2-', 'VALIDATION': 'N3-', 'TEST': 'N4-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '1-2', 'INPUT': 'N1-', 'ANNEALING': 'N3-', 'VALIDATION': 'N2-', 'TEST': 'N4-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '1-3', 'INPUT': 'N2-', 'ANNEALING': 'N3-', 'VALIDATION': 'N1-', 'TEST': 'N4-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '1-1', 'INPUT': 'N1-', 'ANNEALING': 'N2-', 'VALIDATION': 'N3-', 'TEST': 'N4-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '1-2', 'INPUT': 'N1-', 'ANNEALING': 'N3-', 'VALIDATION': 'N2-', 'TEST': 'N4-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '1-3', 'INPUT': 'N2-', 'ANNEALING': 'N3-', 'VALIDATION': 'N1-', 'TEST': 'N4-'},
     
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '2-1', 'INPUT': 'N1-', 'ANNEALING': 'N2-', 'VALIDATION': 'N4-', 'TEST': 'N3-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '2-2', 'INPUT': 'N1-', 'ANNEALING': 'N4-', 'VALIDATION': 'N2-', 'TEST': 'N3-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '2-3', 'INPUT': 'N2-', 'ANNEALING': 'N4-', 'VALIDATION': 'N1-', 'TEST': 'N3-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '2-1', 'INPUT': 'N1-', 'ANNEALING': 'N2-', 'VALIDATION': 'N4-', 'TEST': 'N3-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '2-2', 'INPUT': 'N1-', 'ANNEALING': 'N4-', 'VALIDATION': 'N2-', 'TEST': 'N3-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '2-3', 'INPUT': 'N2-', 'ANNEALING': 'N4-', 'VALIDATION': 'N1-', 'TEST': 'N3-'},
 
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '3-1', 'INPUT': 'N1-', 'ANNEALING': 'N3-', 'VALIDATION': 'N4-', 'TEST': 'N2-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '3-2', 'INPUT': 'N1-', 'ANNEALING': 'N4-', 'VALIDATION': 'N3-', 'TEST': 'N2-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '3-3', 'INPUT': 'N3-', 'ANNEALING': 'N4-', 'VALIDATION': 'N1-', 'TEST': 'N2-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '3-1', 'INPUT': 'N1-', 'ANNEALING': 'N3-', 'VALIDATION': 'N4-', 'TEST': 'N2-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '3-2', 'INPUT': 'N1-', 'ANNEALING': 'N4-', 'VALIDATION': 'N3-', 'TEST': 'N2-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '3-3', 'INPUT': 'N3-', 'ANNEALING': 'N4-', 'VALIDATION': 'N1-', 'TEST': 'N2-'},
 
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '4-1', 'INPUT': 'N2-', 'ANNEALING': 'N3-', 'VALIDATION': 'N4-', 'TEST': 'N1-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '4-2', 'INPUT': 'N2-', 'ANNEALING': 'N4-', 'VALIDATION': 'N3-', 'TEST': 'N1-'},
-    {'N_BLOCK': 5, 'LR': 0.01, 'IN_CHANNEL': 112,  'OUTPUT_DIR': '4-3', 'INPUT': 'N3-', 'ANNEALING': 'N4-', 'VALIDATION': 'N2-', 'TEST': 'N1-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '4-1', 'INPUT': 'N2-', 'ANNEALING': 'N3-', 'VALIDATION': 'N4-', 'TEST': 'N1-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '4-2', 'INPUT': 'N2-', 'ANNEALING': 'N4-', 'VALIDATION': 'N3-', 'TEST': 'N1-'},
+    {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '4-3', 'INPUT': 'N3-', 'ANNEALING': 'N4-', 'VALIDATION': 'N2-', 'TEST': 'N1-'},
 
     # Add more parameter sets as needed
 ]
