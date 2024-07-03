@@ -298,11 +298,11 @@ class UNet(nn.Module):
         #commented the fusion part for original UNet 
         
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
-        
+        #self.in_channels = 1
         # uncommented this part for original UNet
         self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
-        # self.in_channels = 1
+        
         self.out_channels = out_channels
         self.n_blocks = n_blocks
         self.start_filters = start_filters
