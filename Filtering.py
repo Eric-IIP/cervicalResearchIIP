@@ -278,14 +278,14 @@ def single_image(img, image_type, nml_on=True):
         f_img = RFilter.fourier(img, filter_type='notch', params=((100, 100), 20))
 
     #BOXING FILTER
-    elif image_type == InputFeature.BOX1:
-        f_img = RFilter.box(img, (3,3))
-    elif image_type == InputFeature.BOX2:
-        f_img = RFilter.box(img, (5,5))
-    elif image_type == InputFeature.BOX3:
-        f_img = RFilter.box(img, (7,7))
-    elif image_type == InputFeature.BOX4:
-        f_img = RFilter.box(img, (9,9))
+    # elif image_type == InputFeature.BOX1:
+    #     f_img = RFilter.box(img, (3,3))
+    # elif image_type == InputFeature.BOX2:
+    #     f_img = RFilter.box(img, (5,5))
+    # elif image_type == InputFeature.BOX3:
+    #     f_img = RFilter.box(img, (7,7))
+    # elif image_type == InputFeature.BOX4:
+    #     f_img = RFilter.box(img, (9,9))
 
     #SCHARR GRADIENT FILTER
     elif image_type == InputFeature.SCH1:

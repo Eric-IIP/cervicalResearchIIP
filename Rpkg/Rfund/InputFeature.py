@@ -54,111 +54,111 @@ class InputFeature(Enum):
     OOO_ = 'OOO_'
     ## Custom added features from now on
 
-    # #CANNY FILTER
-    # CAN1 = 'CAN1'
-    # CAN2 = 'CAN2'
-    # CAN3 = 'CAN3'
+    #CANNY FILTER
+    CAN1 = 'CAN1'
+    CAN2 = 'CAN2'
+    CAN3 = 'CAN3'
 
-    # #PREWITT FILTER
-    # PRE1 = 'PRE1'
-    # PRE2 = 'PRE2'
-    # PRE3 = 'PRE3'
-    # PRE4 = 'PRE4'
+    #PREWITT FILTER
+    PRE1 = 'PRE1'
+    PRE2 = 'PRE2'
+    PRE3 = 'PRE3'
+    PRE4 = 'PRE4'
 
-    # #UNSHARPENING FILTER
-    # UNS1 = 'UNS1'
-    # UNS2 = 'UNS2'
-    # UNS3 = 'UNS3'
-    # UNS4 = 'UNS4'
-    # UNS5 = 'UNS5'
+    #UNSHARPENING FILTER
+    UNS1 = 'UNS1'
+    UNS2 = 'UNS2'
+    UNS3 = 'UNS3'
+    UNS4 = 'UNS4'
+    UNS5 = 'UNS5'
 
-    # #FOURIER FILTER
-    # FOU1 = 'FOU1'
-    # FOU2 = 'FOU2'
-    # FOU3 = 'FOU3'
-    # FOU4 = 'FOU4'
+    #FOURIER FILTER
+    FOU1 = 'FOU1'
+    FOU2 = 'FOU2'
+    FOU3 = 'FOU3'
+    FOU4 = 'FOU4'
 
-    # #EROSION FILTER
-    # ERO1 = 'ERO1'
-    # ERO2 = 'ERO2'
-    # ERO3 = 'ERO3'
-    # ERO4 = 'ERO4'
-    # ERO5 = 'ERO5'
-    # ERO6 = 'ERO6'
+    #EROSION FILTER
+    ERO1 = 'ERO1'
+    ERO2 = 'ERO2'
+    ERO3 = 'ERO3'
+    ERO4 = 'ERO4'
+    ERO5 = 'ERO5'
+    ERO6 = 'ERO6'
 
-    # #OPENING FILTER
-    # OPN1 = 'OPN1'
-    # OPN2 = 'OPN2'
-    # OPN3 = 'OPN3'
-    # OPN4 = 'OPN4'
-    # OPN5 = 'OPN5'
+    #OPENING FILTER
+    OPN1 = 'OPN1'
+    OPN2 = 'OPN2'
+    OPN3 = 'OPN3'
+    OPN4 = 'OPN4'
+    OPN5 = 'OPN5'
 
-    # #CLOSING FILTER
-    # CLO1 = 'CLO1'
-    # CLO2 = 'CLO2'
-    # CLO3 = 'CLO3'
-    # CLO4 = 'CLO4'
-    # CLO5 = 'CLO5'
+    #CLOSING FILTER
+    CLO1 = 'CLO1'
+    CLO2 = 'CLO2'
+    CLO3 = 'CLO3'
+    CLO4 = 'CLO4'
+    CLO5 = 'CLO5'
 
-    # #BOX FILTER same as mean apparently so commented out
-    # # BOX1 = 'BOX1'
-    # # BOX2 = 'BOX2'
-    # # BOX3 = 'BOX3'
-    # # BOX4 = 'BOX4'
+    #BOX FILTER same as mean apparently so commented out
+    # BOX1 = 'BOX1'
+    # BOX2 = 'BOX2'
+    # BOX3 = 'BOX3'
+    # BOX4 = 'BOX4'
 
-    # #SCHARR GRADIENT FILTER
-    # SCH1 = 'SCH1'
-    # SCH2 = 'SCH2'
-    # SCH3 = 'SCH3'
-    # SCH4 = 'SCH4'
+    #SCHARR GRADIENT FILTER
+    SCH1 = 'SCH1'
+    SCH2 = 'SCH2'
+    SCH3 = 'SCH3'
+    SCH4 = 'SCH4'
     
-    # #ROBERTS CROSS FILTER
-    # ROB1 = 'ROB1'
-    # ROB2 = 'ROB2'
-    # ROB3 = 'ROB3'
-    # ROB4 = 'ROB4'
+    #ROBERTS CROSS FILTER
+    ROB1 = 'ROB1'
+    ROB2 = 'ROB2'
+    ROB3 = 'ROB3'
+    ROB4 = 'ROB4'
 
-    # #MIN FILTER 
-    # MIN1 = 'MIN1'
-    # MIN2 = 'MIN2'
-    # MIN3 = 'MIN3'
-    # MIN4 = 'MIN4'
+    #MIN FILTER 
+    MIN1 = 'MIN1'
+    MIN2 = 'MIN2'
+    MIN3 = 'MIN3'
+    MIN4 = 'MIN4'
     
-    # #MAX FILTER
-    # MAX1 = 'MAX1'
-    # MAX2 = 'MAX2'
-    # MAX3 = 'MAX3'
-    # MAX4 = 'MAX4'
+    #MAX FILTER
+    MAX1 = 'MAX1'
+    MAX2 = 'MAX2'
+    MAX3 = 'MAX3'
+    MAX4 = 'MAX4'
 
-    # #MORPH GRADIENT FILTER
-    # MRG1 = 'MRG1'
-    # MRG2 = 'MRG2'
-    # MRG3 = 'MRG3'
-    # MRG4 = 'MRG4'
+    #MORPH GRADIENT FILTER
+    MRG1 = 'MRG1'
+    MRG2 = 'MRG2'
+    MRG3 = 'MRG3'
+    MRG4 = 'MRG4'
 
-    # #MORPH LAPLACIAN FILTER
-    # MRL1 = 'MRL1'
-    # MRL2 = 'MRL2'
-    # MRL3 = 'MRL3'
-    # MRL4 = 'MRL4'
+    #MORPH LAPLACIAN FILTER
+    MRL1 = 'MRL1'
+    MRL2 = 'MRL2'
+    MRL3 = 'MRL3'
+    MRL4 = 'MRL4'
 
-    # # BOTTOM HAT TRANS
-    # BTM1 = 'BTM1'
-    # BTM2 = 'BTM2'
-    # BTM3 = 'BTM3'
-    # BTM4 = 'BTM4'
+    # BOTTOM HAT TRANS
+    BTM1 = 'BTM1'
+    BTM2 = 'BTM2'
+    BTM3 = 'BTM3'
+    BTM4 = 'BTM4'
 
-    # #DISTANCE TRANSFORM
-    # DST_ = 'DST_'
+    #DISTANCE TRANSFORM
+    DST_ = 'DST_'
 
-    # #HOMOMORPHIC FILTER
-    # HOM_ = 'HOM_'
+    #HOMOMORPHIC FILTER
+    HOM_ = 'HOM_'
 
-    # #STRUCTURE TENSOR FILTER
-    # # STR_ = 'STR_'
+    #STRUCTURE TENSOR FILTER
+    # STR_ = 'STR_'
 
-    # #RICHARDSON LUCY FILTER
-    # RIC_ = 'RIC_'
+    #RICHARDSON LUCY FILTER
+    RIC_ = 'RIC_'
 
 
 
