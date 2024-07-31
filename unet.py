@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-
+import numpy as np
 
 @torch.jit.script
 def autocrop(encoder_layer: torch.Tensor, decoder_layer: torch.Tensor):
@@ -297,10 +297,11 @@ class UNet(nn.Module):
 
         #commented the fusion part for original UNet 
         
-        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
-        #self.in_channels = 1
+        print("in constructor inchannel: " + str(in_channels))
+        self.fusion = nn.Conv2d(27, 1, 1, padding = 'same')
+        self.in_channels = 4
         # uncommented this part for original UNet
-        self.in_channels = in_channels
+        #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -379,9 +380,22 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.tensor):
         encoder_output = []
-
+        #print(x.shape)
+        
+        split_tensors = torch.split(x, 27, dim=1)
+        #print(torch.unique(x))
+        #conv = nn.Conv2d(27, 1, 1, padding = 'same').cuda()
+        conv_tensors = [self.fusion(tensor) for tensor in split_tensors]
+        output_tensor = torch.cat(conv_tensors, dim=1)
+        #print(output_tensor.shape)
+        x = output_tensor
+        #print(torch.unique(x))
+        #print(x.shape)
+        
         # commented this part for original UNet
         #x = self.fusion(x)
+        #print(x.shape)
+        # print(torch.unique(x))
         
         # Encoder pathway
         for module in self.down_blocks:
