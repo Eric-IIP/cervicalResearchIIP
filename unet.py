@@ -287,7 +287,7 @@ class UNet(nn.Module):
                  out_channels: int = 2,
                  n_blocks: int = 1,
                  start_filters: int = 32,
-                 activation: str = 'relu',
+                 activation: str = 'relu',  
                  normalization: str = 'batch',
                  conv_mode: str = 'same',
                  dim: int = 2,
@@ -298,7 +298,8 @@ class UNet(nn.Module):
         #commented the fusion part for original UNet 
         
         print("in constructor inchannel: " + str(in_channels))
-        self.fusion = nn.Conv2d(27, 1, 1, padding = 'same')
+        #self.fusion = nn.Conv2d(27, 1, 1, padding = 'same')
+        self.fusion = nn.Conv2d(108, 1, 1, padding = 'same')
         self.in_channels = 4
         # uncommented this part for original UNet
         #self.in_channels = in_channels
@@ -382,18 +383,23 @@ class UNet(nn.Module):
         encoder_output = []
         #print(x.shape)
         
-        split_tensors = torch.split(x, 27, dim=1)
+        # split_tensors = torch.split(x, 27, dim=1)
         #print(torch.unique(x))
         #conv = nn.Conv2d(27, 1, 1, padding = 'same').cuda()
-        conv_tensors = [self.fusion(tensor) for tensor in split_tensors]
-        output_tensor = torch.cat(conv_tensors, dim=1)
+        #conv_tensors = [self.fusion(tensor) for tensor in split_tensors]
+        #output_tensor = torch.cat(conv_tensors, dim=1)
         #print(output_tensor.shape)
-        x = output_tensor
+        #x = output_tensor
         #print(torch.unique(x))
         #print(x.shape)
         
         # commented this part for original UNet
-        #x = self.fusion(x)
+        split_tensors = []
+        for i in range(4):
+            tensor = self.fusion(x)
+            split_tensors.append(tensor)
+        output_tensor = torch.cat(split_tensors, dim = 1)
+        x = output_tensor
         #print(x.shape)
         # print(torch.unique(x))
         
