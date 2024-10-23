@@ -298,11 +298,21 @@ class UNet(nn.Module):
         #commented the fusion part for original UNet 
         
         print("in constructor inchannel: " + str(in_channels))
-        #self.fusion = nn.Conv2d(27, 1, 1, padding = 'same')
-        self.fusion = nn.Conv2d(108, 1, 1, padding = 'same')
-        self.in_channels = 4
+        
+        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
+        
+        
+        # self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
+        # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
+        # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
+        # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
+        # self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
+        
+        #self.cn6 = nn.Conv2d(in_channels, 1, 7, padding='same')
+        
+        #self.in_channels = 5
         # uncommented this part for original UNet
-        #self.in_channels = in_channels
+        self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -381,7 +391,12 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.tensor):
         encoder_output = []
-        #print(x.shape)
+        
+        
+        
+        # splitting the input tensor with 108 channels into 4 tensors and applying the 
+        # nn conv2d operation then concatting the output tensor
+        # result
         
         # split_tensors = torch.split(x, 27, dim=1)
         #print(torch.unique(x))
@@ -393,16 +408,27 @@ class UNet(nn.Module):
         #print(torch.unique(x))
         #print(x.shape)
         
-        # commented this part for original UNet
-        split_tensors = []
-        for i in range(4):
-            tensor = self.fusion(x)
-            split_tensors.append(tensor)
-        output_tensor = torch.cat(split_tensors, dim = 1)
-        x = output_tensor
-        #print(x.shape)
-        # print(torch.unique(x))
+        # same conv2d trying 4 times result is just same
+        # split_tensors = []
+        # for i in range(4):
+        #     tensor = self.fusion(x)
+        #     split_tensors.append(tensor)
+        # output_tensor = torch.cat(split_tensors, dim = 1)
+        # x = output_tensor
         
+        #x = self.fusion(x)
+        
+        
+        # x1 = self.cn1(x)
+        # x2 = self.cn2(x)
+        # x3 = self.cn3(x)
+        # x4 = self.cn4(x)
+        # x5 = self.cn5(x)
+        
+        
+        # x = torch.cat((x1, x2, x3, x4, x5), dim=1)
+        
+        #x = x3
         # Encoder pathway
         for module in self.down_blocks:
             x, before_pooling = module(x)
