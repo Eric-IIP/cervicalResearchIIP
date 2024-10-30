@@ -302,17 +302,17 @@ class UNet(nn.Module):
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         
         
-        # self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
-        # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
-        # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
-        # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
-        # self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
+        self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
+        self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
+        self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
+        self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
+        self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
         
         #self.cn6 = nn.Conv2d(in_channels, 1, 7, padding='same')
         
-        #self.in_channels = 5
+        self.in_channels = 5
         # uncommented this part for original UNet
-        self.in_channels = in_channels
+        #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -419,14 +419,14 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        # x1 = self.cn1(x)
-        # x2 = self.cn2(x)
-        # x3 = self.cn3(x)
-        # x4 = self.cn4(x)
-        # x5 = self.cn5(x)
+        x1 = self.cn1(x)
+        x2 = self.cn2(x)
+        x3 = self.cn3(x)
+        x4 = self.cn4(x)
+        x5 = self.cn5(x)
         
         
-        # x = torch.cat((x1, x2, x3, x4, x5), dim=1)
+        x = torch.cat((x1, x2, x3, x4, x5), dim=1)
         
         #x = x3
         # Encoder pathway
