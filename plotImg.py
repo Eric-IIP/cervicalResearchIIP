@@ -20,7 +20,8 @@ def plot_images(path, images, titles=None):
     # Hide any remaining empty subplots
     for ax in axes[num_images:]:
         ax.axis('off')
-    plt.savefig(os.path.join(path, "output.png"))
+    if path != "None":
+        plt.savefig(os.path.join(path, "output.png"))
     plt.tight_layout()
     plt.show()
 
