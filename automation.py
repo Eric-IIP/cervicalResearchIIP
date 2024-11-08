@@ -21,21 +21,21 @@ parameter_sets = [
     # {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '34', 'INPUT': ['N2', 'N3'], 'ANNEALING': [], 'VALIDATION': ['N4'], 'TEST': ['oN1']},
     # {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '35', 'INPUT': ['N2', 'N4'], 'ANNEALING': [], 'VALIDATION': ['N3'], 'TEST': ['oN1']},
     #{'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '36', 'INPUT': ['N3', 'N4'], 'ANNEALING': [], 'VALIDATION': ['N2'], 'TEST': ['oN1']},
-    {'EXPERIMENT_NUMBER': 1},
-    {'EXPERIMENT_NUMBER': 2},
-    {'EXPERIMENT_NUMBER': 3},
+    {'EXPERIMENT_NUMBER': 13},
+    {'EXPERIMENT_NUMBER': 14},
+    {'EXPERIMENT_NUMBER': 15},
     
-    {'EXPERIMENT_NUMBER': 4},
-    {'EXPERIMENT_NUMBER': 5},
-    {'EXPERIMENT_NUMBER': 6},
+    {'EXPERIMENT_NUMBER': 16},
+    {'EXPERIMENT_NUMBER': 17},
+    {'EXPERIMENT_NUMBER': 18},
     
-    {'EXPERIMENT_NUMBER': 7},
-    {'EXPERIMENT_NUMBER': 8},
-    {'EXPERIMENT_NUMBER': 9},
+    {'EXPERIMENT_NUMBER': 19},
+    {'EXPERIMENT_NUMBER': 20},
+    {'EXPERIMENT_NUMBER': 21},
     
-    {'EXPERIMENT_NUMBER': 10},
-    {'EXPERIMENT_NUMBER': 11},
-    {'EXPERIMENT_NUMBER': 12},
+    {'EXPERIMENT_NUMBER': 22},
+    {'EXPERIMENT_NUMBER': 23},
+    {'EXPERIMENT_NUMBER': 24},
     
     
     
