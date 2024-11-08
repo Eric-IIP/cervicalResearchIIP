@@ -301,7 +301,6 @@ class UNet(nn.Module):
         
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         
-        
         self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
         self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
         self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
@@ -427,6 +426,7 @@ class UNet(nn.Module):
         
         
         x = torch.cat((x1, x2, x3, x4, x5), dim=1)
+        print(x)
         
         #x = x3
         # Encoder pathway
