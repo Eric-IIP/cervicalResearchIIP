@@ -21,6 +21,9 @@ parameter_sets = [
     # {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '34', 'INPUT': ['N2', 'N3'], 'ANNEALING': [], 'VALIDATION': ['N4'], 'TEST': ['oN1']},
     # {'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '35', 'INPUT': ['N2', 'N4'], 'ANNEALING': [], 'VALIDATION': ['N3'], 'TEST': ['oN1']},
     #{'N_BLOCK': 4, 'LR': 0.01, 'IN_CHANNEL': 45,  'OUTPUT_DIR': '36', 'INPUT': ['N3', 'N4'], 'ANNEALING': [], 'VALIDATION': ['N2'], 'TEST': ['oN1']},
+    
+    
+    ### crf enhance
     {'EXPERIMENT_NUMBER': 13},
     {'EXPERIMENT_NUMBER': 14},
     {'EXPERIMENT_NUMBER': 15},
