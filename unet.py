@@ -426,8 +426,7 @@ class UNet(nn.Module):
         
         
         x = torch.cat((x1, x2, x3, x4, x5), dim=1)
-        print(x)
-        
+                
         #x = x3
         # Encoder pathway
         for module in self.down_blocks:
