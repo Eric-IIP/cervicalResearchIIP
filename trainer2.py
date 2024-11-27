@@ -109,7 +109,7 @@ class Trainer2:
         else:
             from tqdm import tqdm, trange
 
-        # print("start train model!")
+        #print("start train model!")
         self.model.train()  # train mode
         train_losses = []  # accumulate the losses here
         batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
