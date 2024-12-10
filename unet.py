@@ -299,19 +299,45 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
+        # Version single 1x1
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         
-        self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
-        self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
-        self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
-        self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
-        self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
+        #Version multiple 12.1
+        # self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
+        # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
+        # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
+        # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
+        # self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
         
-        #self.cn6 = nn.Conv2d(in_channels, 1, 7, padding='same')
         
-        self.in_channels = 5
-        # uncommented this part for original UNet
-        #self.in_channels = in_channels
+        #Version 3 increase the convolutions again
+        # default common config conv
+        self.cn1 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 1, padding="same")
+        
+        self.cn2 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
+        self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
+        self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
+        self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
+        
+        
+        self.cn6 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 1)
+        self.cn7 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
+        self.cn8 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
+        self.cn9 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
+        
+        # self.cn10 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 1)
+        # self.cn11 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 2)
+        # self.cn12 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 3)
+        # self.cn13 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 4)
+        
+        
+        
+        
+        
+        
+        self.in_channels = 4
+        ##uncommented this part for original UNet
+        # self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -418,14 +444,23 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        x1 = self.cn1(x)
-        x2 = self.cn2(x)
-        x3 = self.cn3(x)
-        x4 = self.cn4(x)
-        x5 = self.cn5(x)
+        # x1 = self.cn1(x)
+        # x2 = self.cn2(x)
+        # x3 = self.cn3(x)
+        # x4 = self.cn4(x)
+        # x5 = self.cn5(x)
+        # x6 = self.cn6(x)
+        # x7 = self.cn7(x)
+        # x8 = self.cn8(x)
+        # x9 = self.cn9(x)
+        x10 = self.cn10(x)
+        x11 = self.cn11(x)
+        x12 = self.cn12(x)
+        x13 = self.cn13(x)
         
         
-        x = torch.cat((x1, x2, x3, x4, x5), dim=1)
+        x = torch.cat((x10, x11, x12, x13
+                       ), dim=1)
                 
         #x = x3
         # Encoder pathway
