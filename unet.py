@@ -312,7 +312,8 @@ class UNet(nn.Module):
         
         #Version 3 increase the convolutions again
         # default common config conv
-        self.cn1 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 1, padding="same")
+        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
+        
         
         self.cn2 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
         self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
@@ -335,7 +336,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 4
+        self.in_channels = 11
         ##uncommented this part for original UNet
         # self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -444,22 +445,22 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        # x1 = self.cn1(x)
-        # x2 = self.cn2(x)
-        # x3 = self.cn3(x)
-        # x4 = self.cn4(x)
-        # x5 = self.cn5(x)
-        # x6 = self.cn6(x)
-        # x7 = self.cn7(x)
-        # x8 = self.cn8(x)
-        # x9 = self.cn9(x)
-        x10 = self.cn10(x)
-        x11 = self.cn11(x)
-        x12 = self.cn12(x)
-        x13 = self.cn13(x)
+        x1 = self.cn1(x)
+        x2 = self.cn2(x)
+        x3 = self.cn3(x)
+        x4 = self.cn4(x)
+        x5 = self.cn5(x)
+        x6 = self.cn6(x)
+        x7 = self.cn7(x)
+        x8 = self.cn8(x)
+        x9 = self.cn9(x)
+        # x10 = self.cn10(x)
+        # x11 = self.cn11(x)
+        # x12 = self.cn12(x)
+        # x13 = self.cn13(x)
         
         
-        x = torch.cat((x10, x11, x12, x13
+        x = torch.cat((x1, x2, x3, x4, x5, x6, x7, x8, x9
                        ), dim=1)
                 
         #x = x3
