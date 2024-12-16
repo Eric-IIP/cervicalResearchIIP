@@ -53,7 +53,7 @@ class Trainer2:
         early_stopping = EarlyStopping(patience = 50,verbose = True)
         
         try:
-            for i in progressbar:
+            for i in range(self.epochs):
                 """Epoch counter"""
                 self.epoch += 1  # epoch counter
 
@@ -74,19 +74,19 @@ class Trainer2:
                         self.lr_scheduler.batch()  # learning rate scheduler step
                         
                         
-                print('val_losses',self.validation_loss[i])
+                #print('val_losses',self.validation_loss[i])
 
                 # Logging
-                self.logger.info(f'Epoch: {i + 1}')
-                self.logger.info(f'Training Loss: {self.training_loss[-1]}')
-                self.logger.info(f'Validation Loss: {self.validation_loss[-1]}')
-                self.logger.info(f'Learning Rate: {self.learning_rate[-1]}')
+                # self.logger.info(f'Epoch: {i + 1}')
+                # self.logger.info(f'Training Loss: {self.training_loss[-1]}')
+                # self.logger.info(f'Validation Loss: {self.validation_loss[-1]}')
+                # self.logger.info(f'Learning Rate: {self.learning_rate[-1]}')
 
                 early_stopping(self.validation_loss[i],self.model)
         
                 if early_stopping.early_stop:
-                    print(f"early stopping epoch:",i)
-                    self.logger.info(f"Early stopping epoch: {i}")
+                    #print(f"early stopping epoch:",i)
+                    #self.logger.info(f"Early stopping epoch: {i}")
                     break
 
         except Exception as e:
@@ -112,10 +112,10 @@ class Trainer2:
         #print("start train model!")
         self.model.train()  # train mode
         train_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
-                          leave=False)
+        #batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
+        #                 leave=False)
 
-        for i, (x, y) in batch_iter:
+        for i, (x, y) in enumerate(self.training_DataLoader):
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
             
             # print(f'Train Input size: {input.size()}')
@@ -129,12 +129,12 @@ class Trainer2:
             loss.backward()  # one backward pass
             self.optimizer.step()  # update the parameters
 
-            batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
+            #batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
 
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
-        batch_iter.close()
+        #batch_iter.close()
 
     def _validate(self):
 
@@ -145,10 +145,10 @@ class Trainer2:
 
         self.model.eval()  # evaluation mode
         valid_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
-                          leave=False)
+        # batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
+        #                   leave=False)
 
-        for i, (x, y) in batch_iter:
+        for i, (x, y) in enumerate(self.validation_DataLoader):
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
 
             # print(f'Valid Input size: {input.size()}')
@@ -160,8 +160,8 @@ class Trainer2:
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
+                #batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
 
         self.validation_loss.append(np.mean(valid_losses))
 
-        batch_iter.close()
+        #batch_iter.close()

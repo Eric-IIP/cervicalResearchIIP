@@ -291,16 +291,20 @@ class UNet(nn.Module):
                  normalization: str = 'batch',
                  conv_mode: str = 'same',
                  dim: int = 2,
+                 # custom written for optuna and parameter passing by eric
+                 kernel_size: int = 1,
+                 kernel_out_channels: int = 1,
+                 ##
                  up_mode: str = 'transposed'
                  ):
         super().__init__()
 
         #commented the fusion part for original UNet 
         
-        print("in constructor inchannel: " + str(in_channels))
+        #print("in constructor inchannel: " + str(in_channels))
         
         # Version single 1x1
-        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
+        self.fusion = nn.Conv2d(in_channels, out_channels = kernel_out_channels, kernel_size = kernel_size, padding = 'same')
         
         #Version multiple 12.1
         # self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
@@ -312,19 +316,19 @@ class UNet(nn.Module):
         
         #Version 3 increase the convolutions again
         # default common config conv
-        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
+        #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
         
-        self.cn2 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
-        self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
-        self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
-        self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
+        # self.cn2 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
+        # self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
+        # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
+        # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
         
         
-        self.cn6 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 1)
-        self.cn7 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
-        self.cn8 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
-        self.cn9 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
+        # self.cn6 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 1)
+        # self.cn7 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
+        # self.cn8 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
+        # self.cn9 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
         
         # self.cn10 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 1)
         # self.cn11 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 2)
@@ -336,10 +340,10 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 11
+        self.in_channels = kernel_out_channels
         ##uncommented this part for original UNet
         # self.in_channels = in_channels
-        print("Input channel count" + str(self.in_channels))
+        #print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
         self.n_blocks = n_blocks
@@ -442,26 +446,26 @@ class UNet(nn.Module):
         # output_tensor = torch.cat(split_tensors, dim = 1)
         # x = output_tensor
         
-        #x = self.fusion(x)
+        x = self.fusion(x)
         
         
-        x1 = self.cn1(x)
-        x2 = self.cn2(x)
-        x3 = self.cn3(x)
-        x4 = self.cn4(x)
-        x5 = self.cn5(x)
-        x6 = self.cn6(x)
-        x7 = self.cn7(x)
-        x8 = self.cn8(x)
-        x9 = self.cn9(x)
+        # x1 = self.cn1(x)
+        # x2 = self.cn2(x)
+        # x3 = self.cn3(x)
+        # x4 = self.cn4(x)
+        # x5 = self.cn5(x)
+        # x6 = self.cn6(x)
+        # x7 = self.cn7(x)
+        # x8 = self.cn8(x)
+        # x9 = self.cn9(x)
         # x10 = self.cn10(x)
         # x11 = self.cn11(x)
         # x12 = self.cn12(x)
         # x13 = self.cn13(x)
         
         
-        x = torch.cat((x1, x2, x3, x4, x5, x6, x7, x8, x9
-                       ), dim=1)
+        # x = torch.cat((x1, x2, x3, x4, x5, x6, x7, x8, x9
+        #                ), dim=1)
                 
         #x = x3
         # Encoder pathway
