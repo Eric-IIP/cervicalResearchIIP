@@ -132,19 +132,25 @@ class Embeddings(nn.Module):
         img_size = _pair(img_size)
 
         if config.patches.get("grid") is not None:   # ResNet
+            print("##in if")
             grid_size = config.patches["grid"]
             patch_size = (img_size[0] // 16 // grid_size[0], img_size[1] // 16 // grid_size[1])
             patch_size_real = (patch_size[0] * 16, patch_size[1] * 16)
             n_patches = (img_size[0] // patch_size_real[0]) * (img_size[1] // patch_size_real[1])  
             self.hybrid = True
         else:
+            print("##in else")
             patch_size = _pair(config.patches["size"])
             n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
             self.hybrid = False
 
         if self.hybrid:
-            self.hybrid_model = ResNetV2(block_units=config.resnet.num_layers, width_factor=config.resnet.width_factor)
+            print("##in hyb")
+            print(in_channels)
+            self.hybrid_model = ResNetV2(block_units=config.resnet.num_layers, width_factor=config.resnet.width_factor, input_channels=in_channels)
+            print(in_channels)
             in_channels = self.hybrid_model.width * 16
+            print(in_channels)
         self.patch_embeddings = Conv2d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
                                        kernel_size=patch_size,
@@ -252,10 +258,10 @@ class Encoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, config, img_size, vis):
+    def __init__(self, config, img_size, vis, in_channels):
         print("In: Transformer")
         super(Transformer, self).__init__()
-        self.embeddings = Embeddings(config, img_size=img_size)
+        self.embeddings = Embeddings(config, img_size=img_size, in_channels=in_channels)
         self.encoder = Encoder(config, vis)
 
     def forward(self, input_ids):
@@ -384,7 +390,7 @@ class VisionTransformer(nn.Module):
         self.num_classes = num_classes
         self.zero_head = zero_head
         self.classifier = config.classifier
-        self.transformer = Transformer(config, img_size, vis)
+        
         self.decoder = DecoderCup(config)
         self.segmentation_head = SegmentationHead(
             in_channels=config['decoder_channels'][-1],
@@ -397,29 +403,32 @@ class VisionTransformer(nn.Module):
         if bMask:
             self.roiGenerator = ROIGenerator(3, 1)
         # fusion part    
-        self.fusion = nn.Conv2d(45, out_channels = 3, kernel_size = 1, padding="same")
-        #self.cn1 = nn.Conv2d(45, 1, 1, padding='same')
-        #self.cn2 = nn.Conv2d(45, 1, 3, padding='same')
-        #self.cn3 = nn.Conv2d(45, 1, 3, dilation = 2, padding='same')
-        #self.cn4 = nn.Conv2d(45, 1, 5, padding='same')
-        #self.cn5 = nn.Conv2d(45, 1, 5, dilation = 2, padding='same')
+        #self.fusion = nn.Conv2d(45, out_channels = 3, kernel_size = 1, padding="same")
+        # self.cn1 = nn.Conv2d(45, 1, 1, padding='same')
+        # self.cn2 = nn.Conv2d(45, 1, 3, padding='same')
+        # self.cn3 = nn.Conv2d(45, 1, 3, dilation = 2, padding='same')
         
-        #self.cn2 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
-        #self.cn3 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
-        #self.cn4 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
-        #self.cn5 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
+        
+        self.cn2 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
+        self.cn3 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
+        self.cn4 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
+        self.cn5 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
+        
+        
+        self.transformer = Transformer(config, img_size, vis, in_channels = 4)
+       
         
 
     def forward(self, x):
-        x = self.fusion(x)
+        #x = self.fusion(x)
         #x1 = self.cn1(x)
-        # x2 = self.cn2(x)
-        # x3 = self.cn3(x)
-        # x4 = self.cn4(x)
-        # x5 = self.cn5(x)
+        x2 = self.cn2(x)
+        x3 = self.cn3(x)
+        x4 = self.cn4(x)
+        x5 = self.cn5(x)
         
-        # x = torch.cat((x2, x3, x4, x5
-        #                ), dim=1)
+        x = torch.cat((x2, x3, x4, x5
+                       ), dim=1)
         
         if x.size()[1] == 1:
             x = x.repeat(1,3,1,1)
