@@ -46,7 +46,7 @@ class Trainer2:
         else:
             from tqdm import tqdm, trange
 
-        progressbar = trange(self.epochs, desc='Progress')
+        #progressbar = trange(self.epochs, desc='Progress')
         
         
         #ここでearlystoppingの打ち切り回数設定
