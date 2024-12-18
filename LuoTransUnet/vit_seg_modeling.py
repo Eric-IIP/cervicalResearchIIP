@@ -125,32 +125,25 @@ class Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
     """
     def __init__(self, config, img_size, in_channels=3):
-        print("In: Embedding")
         super(Embeddings, self).__init__()
         self.hybrid = None
         self.config = config
         img_size = _pair(img_size)
 
         if config.patches.get("grid") is not None:   # ResNet
-            print("##in if")
             grid_size = config.patches["grid"]
             patch_size = (img_size[0] // 16 // grid_size[0], img_size[1] // 16 // grid_size[1])
             patch_size_real = (patch_size[0] * 16, patch_size[1] * 16)
             n_patches = (img_size[0] // patch_size_real[0]) * (img_size[1] // patch_size_real[1])  
             self.hybrid = True
         else:
-            print("##in else")
             patch_size = _pair(config.patches["size"])
             n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
             self.hybrid = False
 
         if self.hybrid:
-            print("##in hyb")
-            print(in_channels)
             self.hybrid_model = ResNetV2(block_units=config.resnet.num_layers, width_factor=config.resnet.width_factor, input_channels=in_channels)
-            print(in_channels)
             in_channels = self.hybrid_model.width * 16
-            print(in_channels)
         self.patch_embeddings = Conv2d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
                                        kernel_size=patch_size,
@@ -259,7 +252,6 @@ class Encoder(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(self, config, img_size, vis, in_channels):
-        print("In: Transformer")
         super(Transformer, self).__init__()
         self.embeddings = Embeddings(config, img_size=img_size, in_channels=in_channels)
         self.encoder = Encoder(config, vis)
@@ -385,7 +377,6 @@ class DecoderCup(nn.Module):
 
 class VisionTransformer(nn.Module):
     def __init__(self, config, img_size=224, num_classes=21843, zero_head=False, vis=False, bMask = False):
-        print("In: VisionTransformer")
         super(VisionTransformer, self).__init__()
         self.num_classes = num_classes
         self.zero_head = zero_head
