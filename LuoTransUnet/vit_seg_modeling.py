@@ -409,10 +409,10 @@ class VisionTransformer(nn.Module):
         # self.cn3 = nn.Conv2d(45, 1, 3, dilation = 2, padding='same')
         
         
-        self.cn2 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 1)
-        self.cn3 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
-        self.cn4 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
-        self.cn5 = nn.Conv2d(45, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
+        self.cn2 = nn.Conv2d(45, out_channels = 1, kernel_size = 5, padding="same", dilation = 1)
+        self.cn3 = nn.Conv2d(45, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
+        self.cn4 = nn.Conv2d(45, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
+        self.cn5 = nn.Conv2d(45, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
         
         
         self.transformer = Transformer(config, img_size, vis, in_channels = 4)
