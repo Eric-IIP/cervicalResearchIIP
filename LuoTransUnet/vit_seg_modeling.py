@@ -430,8 +430,9 @@ class VisionTransformer(nn.Module):
         # x = torch.cat((x1, x2, x3, x4, x5, x6, x7, x8, x9
         #                ), dim=1)
         
-        if x.size()[1] == 1:
-            x = x.repeat(1,3,1,1)
+        # if x.size()[1] == 1:
+        #     x = x.repeat(1,3,1,1)
+        
         assert FLAG, "{}".format(x.size())
         if self.bMask:
             #assert False,str(x.size())
