@@ -20,7 +20,7 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
         self.device = device
