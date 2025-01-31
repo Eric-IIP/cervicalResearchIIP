@@ -16,7 +16,6 @@ def np2th(weights, conv=False):
 
 
 class StdConv2d(nn.Conv2d):
-
     def forward(self, x):
         w = self.weight
         v, m = torch.var_mean(w, dim=[1, 2, 3], keepdim=True, unbiased=False)
@@ -112,13 +111,13 @@ class PreActBottleneck(nn.Module):
 class ResNetV2(nn.Module):
     """Implementation of Pre-activation (v2) ResNet mode."""
 
-    def __init__(self, block_units, width_factor):
+    def __init__(self, block_units, width_factor, input_channels = 3):
         super().__init__()
         width = int(64 * width_factor)
         self.width = width
 
         self.root = nn.Sequential(OrderedDict([
-            ('conv', StdConv2d(3, width, kernel_size=7, stride=2, bias=False, padding=3)),
+            ('conv', StdConv2d(input_channels, width, kernel_size=7, stride=2, bias=False, padding=3)),
             ('gn', nn.GroupNorm(32, width, eps=1e-6)),
             ('relu', nn.ReLU(inplace=True)),
             # ('pool', nn.MaxPool2d(kernel_size=3, stride=2, padding=0))
