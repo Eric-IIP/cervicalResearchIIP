@@ -1,6 +1,16 @@
 import numpy as np
 import torch
 import logging
+from torch.optim.lr_scheduler import (
+    StepLR, 
+    ExponentialLR, 
+    CosineAnnealingLR, 
+    ReduceLROnPlateau, 
+    CyclicLR, 
+    OneCycleLR,
+    CosineAnnealingWarmRestarts
+)
+
 from pytorchtools import EarlyStopping
 
 class Trainer2:
@@ -20,8 +30,46 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.lr_scheduler = None
+        #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+        #self.lr_scheduler = ExponentialLR(optimizer, gamma=0.9)
+        #Experiment No.0
         #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+        #Experiment No.1
+        #self.lr_scheduler = scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=50, T_mult=2)
+        #self.lr_scheduler = CosineAnnealingLR(optimizer, T_max=146)
+        #Experiment No.2
+        # self.lr_scheduler = ReduceLROnPlateau(
+        # optimizer,
+        # mode='min',          # Monitor validation loss (minimizing it)
+        # factor=0.5,          # Reduce LR by half
+        # patience=5,          # Wait 5 epochs for improvement
+        # threshold=1e-4,      # Improvement threshold
+        # cooldown=2,          # Wait 2 epochs after reducing LR
+        # min_lr=1e-6,         # Prevent LR from going too low
+        # verbose=True         # Print LR updates
+        # )
+        
+        self.lr_scheduler = CyclicLR(
+            optimizer,
+            base_lr=1e-4,      # Minimum LR
+            max_lr=1e-3,       # Maximum LR
+            step_size_up=660, # Gradual increase 660 iterations steps per epoch = trainingset length / batch size; 660/2=330 and then a few epoch multiplied (2-4) in this case: 2
+            step_size_down=660, # Gradual decrease for 2000 iterations
+            mode='triangular', # Linear up and down
+            cycle_momentum=False # Set to True for optimizers like SGD with momentum
+        )
+        
+        #total_steps = num_epochs * (train_dataset_size // batch_size)
+        # total_steps = 146 * (660 // 2)
+        
+        # self.lr_scheduler = OneCycleLR(
+        #     optimizer,
+        #     max_lr= (1e-3) * 3,      # Peak LR 0.003
+        #     total_steps=total_steps,  # Total training steps
+        #     pct_start=0.3,    # 30% high LR, then decay
+        #     anneal_strategy='cos',  # Cosine decay
+        #     cycle_momentum=False  # Keep False for AdamW
+        # )
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
         self.device = device
@@ -65,14 +113,42 @@ class Trainer2:
                 if self.validation_DataLoader is not None:
                     self._validate()
                 
-                    
+                if isinstance(self.lr_scheduler, StepLR):
+                    #print(f"Using StepLR. Epoch: {self.epoch + 1}")
+                    self.lr_scheduler.step()
 
-                """Learning rate scheduler block"""
-                if self.lr_scheduler is not None:
-                    if self.validation_DataLoader is not None and self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
-                        self.lr_scheduler.batch(self.validation_loss[i])  # learning rate scheduler step with validation loss
-                    else:
-                        self.lr_scheduler.step()  # StepLR
+                elif isinstance(self.lr_scheduler, ExponentialLR):
+                    #print(f"Using ExponentialLR. Epoch: {self.epoch + 1}")
+                    self.lr_scheduler.step()
+
+                elif isinstance(self.lr_scheduler, CosineAnnealingLR):
+                    #print(f"Using CosineAnnealingLR. Epoch: {self.epoch + 1}")
+                    self.lr_scheduler.step()
+
+                elif isinstance(self.lr_scheduler, ReduceLROnPlateau):
+                    #print(f"Using ReduceLROnPlateau. Epoch: {self.epoch + 1}")
+                    self.lr_scheduler.step(self.validation_loss[i])  # Pass the loss for ReduceLROnPlateau
+                elif isinstance(self.lr_scheduler, CosineAnnealingWarmRestarts):
+                    #self.lr_scheduler.step(self.epoch + 1)
+                    self.lr_scheduler.step(self.epoch + 1)
+                    
+                elif isinstance(self.lr_scheduler, CyclicLR):
+                    self.lr_scheduler.step()
+                    #print(f"Using CyclicLR (updated per batch). Epoch: {self.epoch + 1}")
+
+                elif isinstance(self.lr_scheduler, OneCycleLR):
+                    self.lr_scheduler.step()
+
+                else:
+                    print("Unknown scheduler. No specific action taken.")
+                    
+                    
+                # """Learning rate scheduler block"""
+                # if self.lr_scheduler is not None:
+                #     if self.validation_DataLoader is not None and self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
+                #         self.lr_scheduler.batch(self.validation_loss[i])  # learning rate scheduler step with validation loss
+                #     else:
+                #         self.lr_scheduler.step(self.epoch+1)  # StepLR/Cosine
                         
                         
                 print('val_losses',self.validation_loss[i])
