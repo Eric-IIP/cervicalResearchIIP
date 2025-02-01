@@ -11,10 +11,10 @@ def get_transNet(n_classes, bMask = False):
     vit_name = 'R50-ViT-B_16'
 
     config_vit = CONFIGS_ViT_seg[vit_name]
-    config_vit.transformer.num_layers = 12
-    config_vit.patch_size = 8
     config_vit.n_classes = n_classes
     config_vit.n_skip = 3
+    config_vit.transformer.num_layers = 12
+    config_vit.patch_size = 8
     if vit_name.find('R50') != -1:
         config_vit.patches.grid = (int(img_size / vit_patches_size), int(img_size / vit_patches_size))
     net = ViT_seg(config_vit, img_size=img_size, num_classes=n_classes, bMask=bMask)
