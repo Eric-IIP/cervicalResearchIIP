@@ -30,7 +30,7 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+        self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
         #self.lr_scheduler = ExponentialLR(optimizer, gamma=0.9)
         #Experiment No.0
         #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
@@ -49,15 +49,15 @@ class Trainer2:
         # verbose=True         # Print LR updates
         # )
         
-        self.lr_scheduler = CyclicLR(
-            optimizer,
-            base_lr=1e-4,      # Minimum LR
-            max_lr=1e-3,       # Maximum LR
-            step_size_up=660, # Gradual increase 660 iterations steps per epoch = trainingset length / batch size; 660/2=330 and then a few epoch multiplied (2-4) in this case: 2
-            step_size_down=660, # Gradual decrease for 2000 iterations
-            mode='triangular', # Linear up and down
-            cycle_momentum=False # Set to True for optimizers like SGD with momentum
-        )
+        # self.lr_scheduler = CyclicLR(
+        #     optimizer,
+        #     base_lr=1e-4,      # Minimum LR
+        #     max_lr=1e-3,       # Maximum LR
+        #     step_size_up=660, # Gradual increase 660 iterations steps per epoch = trainingset length / batch size; 660/2=330 and then a few epoch multiplied (2-4) in this case: 2
+        #     step_size_down=660, # Gradual decrease for 2000 iterations
+        #     mode='triangular', # Linear up and down
+        #     cycle_momentum=False # Set to True for optimizers like SGD with momentum
+        # )
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
         # total_steps = 146 * (660 // 2)
