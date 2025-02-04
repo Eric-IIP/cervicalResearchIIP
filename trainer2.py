@@ -30,13 +30,13 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+        #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
         #self.lr_scheduler = ExponentialLR(optimizer, gamma=0.9)
         #Experiment No.0
         #self.lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
         #Experiment No.1
         #self.lr_scheduler = scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=50, T_mult=2)
-        #self.lr_scheduler = CosineAnnealingLR(optimizer, T_max=146)
+        #self.lr_scheduler = CosineAnnealingLR(optimizer, T_max=222)
         #Experiment No.2
         # self.lr_scheduler = ReduceLROnPlateau(
         # optimizer,
@@ -48,7 +48,15 @@ class Trainer2:
         # min_lr=1e-6,         # Prevent LR from going too low
         # verbose=True         # Print LR updates
         # )
-        
+        # self.lr_scheduler = CyclicLR(
+        #     optimizer,
+        #     base_lr=1e-4,      # Minimum LR
+        #     max_lr=1e-3,       # Maximum LR
+        #     step_size_up=500, # Gradual increase for 2000 iterations
+        #     step_size_down=500, # Gradual decrease for 2000 iterations
+        #     mode='triangular', # Linear up and down
+        #     cycle_momentum=False # Set to True for optimizers like SGD with momentum
+        # ) 
         # self.lr_scheduler = CyclicLR(
         #     optimizer,
         #     base_lr=1e-4,      # Minimum LR
@@ -60,16 +68,16 @@ class Trainer2:
         # )
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
-        # total_steps = 146 * (660 // 2)
+        total_steps = 222 * (660 // 2)
         
-        # self.lr_scheduler = OneCycleLR(
-        #     optimizer,
-        #     max_lr= (1e-3) * 3,      # Peak LR 0.003
-        #     total_steps=total_steps,  # Total training steps
-        #     pct_start=0.3,    # 30% high LR, then decay
-        #     anneal_strategy='cos',  # Cosine decay
-        #     cycle_momentum=False  # Keep False for AdamW
-        # )
+        self.lr_scheduler = OneCycleLR(
+            optimizer,
+            max_lr= (1e-3) * 3,      # Peak LR 0.003
+            total_steps=total_steps,  # Total training steps
+            pct_start=0.3,    # 30% high LR, then decay
+            anneal_strategy='cos',  # Cosine decay
+            cycle_momentum=False  # Keep False for AdamW
+        )
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
         self.device = device
