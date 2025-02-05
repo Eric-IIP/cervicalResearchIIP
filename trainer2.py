@@ -30,6 +30,7 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
+        #self.lr_scheduler = None
 
         #for mcunet
         self.lr_scheduler = CyclicLR(
@@ -43,16 +44,16 @@ class Trainer2:
         ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
-        total_steps = 222 * (660 // 2)
-        #for mctransunet
-        self.lr_scheduler = OneCycleLR(
-            optimizer,
-            max_lr= (1e-3) * 3,      # Peak LR 0.003
-            total_steps=total_steps,  # Total training steps
-            pct_start=0.3,    # 30% high LR, then decay
-            anneal_strategy='cos',  # Cosine decay
-            cycle_momentum=False  # Keep False for AdamW
-        )
+        # total_steps = 222 * (660 // 2)
+        # #for mctransunet
+        # self.lr_scheduler = OneCycleLR(
+        #     optimizer,
+        #     max_lr= (1e-3) * 3,      # Peak LR 0.003
+        #     total_steps=total_steps,  # Total training steps
+        #     pct_start=0.3,    # 30% high LR, then decay
+        #     anneal_strategy='cos',  # Cosine decay
+        #     cycle_momentum=False  # Keep False for AdamW
+        # )
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
         self.device = device
