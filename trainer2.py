@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import time
 import logging
 from torch.optim.lr_scheduler import (
     StepLR, 
@@ -33,27 +34,27 @@ class Trainer2:
         #self.lr_scheduler = None
 
         #for mcunet
-        # self.lr_scheduler = CyclicLR(
-        #     optimizer,
-        #     base_lr=1e-4,      # Minimum LR
-        #     max_lr=1e-3,       # Maximum LR
-        #     step_size_up=500, # Gradual increase for 2000 iterations
-        #     step_size_down=500, # Gradual decrease for 2000 iterations
-        #     mode='triangular', # Linear up and down
-        #     cycle_momentum=False 
-        # ) 
+        self.lr_scheduler = CyclicLR(
+            optimizer,
+            base_lr=1e-4,      # Minimum LR
+            max_lr=1e-3,       # Maximum LR
+            step_size_up=500, # Gradual increase for 2000 iterations
+            step_size_down=500, # Gradual decrease for 2000 iterations
+            mode='triangular', # Linear up and down
+            cycle_momentum=False 
+        ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
         total_steps = 222 * (660 // 2)
         # #for mctransunet
-        self.lr_scheduler = OneCycleLR(
-            optimizer,
-            max_lr= (1e-3) * 3,      # Peak LR 0.003
-            total_steps=total_steps,  # Total training steps
-            pct_start=0.3,    # 30% high LR, then decay
-            anneal_strategy='cos',  # Cosine decay
-            cycle_momentum=False  # Keep False for AdamW
-        )
+        # self.lr_scheduler = OneCycleLR(
+        #     optimizer,
+        #     max_lr= (1e-3) * 3,      # Peak LR 0.003
+        #     total_steps=total_steps,  # Total training steps
+        #     pct_start=0.3,    # 30% high LR, then decay
+        #     anneal_strategy='cos',  # Cosine decay
+        #     cycle_momentum=False  # Keep False for AdamW
+        # )
         self.training_DataLoader = training_DataLoader
         self.validation_DataLoader = validation_DataLoader
         self.device = device
@@ -176,6 +177,12 @@ class Trainer2:
         batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
                           leave=False)
 
+        ### this block is added for insight for paper
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()  # Ensure GPU operations finish before timing
+        start_time = time.time()  # Start time tracking
+        
+        
         for i, (x, y) in batch_iter:
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
             
@@ -192,10 +199,28 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
 
+        ## block added for paper
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()  # Ensure GPU operations finish before stopping time
+        train_time = time.time() - start_time  # Compute training time
+        # Check memory usage (only if using GPU)
+        max_memory = torch.cuda.max_memory_allocated() / (1024 ** 2) if torch.cuda.is_available() else 0  # Convert to MB
+        
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
         batch_iter.close()
+        
+        #### insights added later for paper
+        torch.save({
+            'epoch': self.current_epoch,  # Track epoch number
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'training_loss': self.training_loss[-1],  # Save latest loss
+            'train_time': train_time,
+            'memory_usage': max_memory
+        }, f"unet_epoch_{self.current_epoch}.pt")
+
 
     def _validate(self):
 
