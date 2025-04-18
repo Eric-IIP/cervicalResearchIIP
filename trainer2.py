@@ -45,7 +45,7 @@ class Trainer2:
         ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
-        total_steps = 222 * (660 // 2)
+        t#otal_steps = 222 * (660 // 2)
         # #for mctransunet
         # self.lr_scheduler = OneCycleLR(
         #     optimizer,
@@ -211,15 +211,14 @@ class Trainer2:
 
         batch_iter.close()
         
-        #### insights added later for paper
-        torch.save({
-            'epoch': self.current_epoch,  # Track epoch number
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'training_loss': self.training_loss[-1],  # Save latest loss
-            'train_time': train_time,
-            'memory_usage': max_memory
-        }, f"unet_epoch_{self.current_epoch}.pt")
+        
+        self.train_stats = {
+        'epoch': getattr(self, 'current_epoch', 0),
+        'training_loss': np.mean(train_losses),
+        'train_time': train_time,
+        'memory_usage': max_memory
+        }
+        
 
 
     def _validate(self):
@@ -249,5 +248,14 @@ class Trainer2:
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
 
         self.validation_loss.append(np.mean(valid_losses))
-
         batch_iter.close()
+        
+        self.checkpoint = {
+        'epoch': self.train_stats['epoch'],
+        'model_state_dict': self.model.state_dict(),
+        'optimizer_state_dict': self.optimizer.state_dict(),
+        'training_loss': self.train_stats['training_loss'],
+        'validation_loss': valid_losses,
+        'train_time': self.train_stats['train_time'],
+        'memory_usage': self.train_stats['memory_usage'],
+        }
