@@ -45,7 +45,7 @@ class Trainer2:
         ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
-        t#otal_steps = 222 * (660 // 2)
+        #total_steps = 222 * (660 // 2)
         # #for mctransunet
         # self.lr_scheduler = OneCycleLR(
         #     optimizer,
@@ -176,11 +176,6 @@ class Trainer2:
         train_losses = []  # accumulate the losses here
         batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
                           leave=False)
-
-        ### this block is added for insight for paper
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()  # Ensure GPU operations finish before timing
-        start_time = time.time()  # Start time tracking
         
         
         for i, (x, y) in batch_iter:
@@ -199,25 +194,11 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
 
-        ## block added for paper
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()  # Ensure GPU operations finish before stopping time
-        train_time = time.time() - start_time  # Compute training time
-        # Check memory usage (only if using GPU)
-        max_memory = torch.cuda.max_memory_allocated() / (1024 ** 2) if torch.cuda.is_available() else 0  # Convert to MB
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
         batch_iter.close()
-        
-        
-        self.train_stats = {
-        'epoch': getattr(self, 'current_epoch', 0),
-        'training_loss': np.mean(train_losses),
-        'train_time': train_time,
-        'memory_usage': max_memory
-        }
         
 
 
@@ -249,13 +230,3 @@ class Trainer2:
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()
-        
-        self.checkpoint = {
-        'epoch': self.train_stats['epoch'],
-        'model_state_dict': self.model.state_dict(),
-        'optimizer_state_dict': self.optimizer.state_dict(),
-        'training_loss': self.train_stats['training_loss'],
-        'validation_loss': valid_losses,
-        'train_time': self.train_stats['train_time'],
-        'memory_usage': self.train_stats['memory_usage'],
-        }
