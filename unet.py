@@ -312,10 +312,10 @@ class UNet(nn.Module):
         
         #Version 3 increase the convolutions again
         # default common config conv
-        #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
+        self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
         
-        self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
         # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
         # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
