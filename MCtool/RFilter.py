@@ -1237,3 +1237,15 @@ def richardson_lucy(img):
     
     return estimate
 
+def custom_standard_deviation(img):
+    #img = cv2.imread(img)
+    
+    height, width, channels = img.shape
+    overall_value = list()
+    for y in height:
+        for x in width:
+            overall_value.append(img[y][x])
+    print()
+            
+            
+
