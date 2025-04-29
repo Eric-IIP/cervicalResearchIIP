@@ -31,6 +31,8 @@ class Trainer2:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
+        self.all_mean_activations = []
+        self.all_max_activations = []
         #self.lr_scheduler = None
 
         #for mcunet
@@ -150,6 +152,22 @@ class Trainer2:
                     print(f"early stopping epoch:",i)
                     self.logger.info(f"Early stopping epoch: {i}")
                     break
+                
+            #feature analyze section eric
+            ####    
+            last_epoch_mean_activation = self.all_mean_activations[-1]
+            last_epoch_max_activation = self.all_max_activations[-1]
+
+            # Print the mean activation values for each filter in the last epoch
+            print("Last Epoch - Mean activation values for each filter:")
+            for idx, mean_value in enumerate(last_epoch_mean_activation[0]):  # Iterate over each filter
+                print(f"Filter {idx}: {mean_value.item()}")
+
+            # Print the max activation values for each filter in the last epoch
+            print("\nLast Epoch - Max activation values for each filter:")
+            for idx, max_value in enumerate(last_epoch_max_activation[0]):  # Iterate over each filter
+                print(f"Filter {idx}: {max_value.item()}")
+            #####
 
         except Exception as e:
             print("An error occurred during training/validation:")
@@ -227,6 +245,34 @@ class Trainer2:
                 valid_losses.append(loss_value)
 
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
+                
+                
+                ###custom feature map analyzing eric
+                first_block_activation = self.model.activations[self.model.down_blocks[0]]
+
+                abs_max_activation = torch.abs(torch.amax(first_block_activation, dim=[2, 3]))
+        
+                # Sort activations and get the indices in descending order
+                sorted_activation_values, sorted_activation_indices = torch.sort(abs_max_activation, dim=0, descending=True)
+                flattened_activations = sorted_activation_values.view(sorted_activation_values.size(0), sorted_activation_values.size(1), -1)
+
+               # Calculate the mean activation across the spatial dimensions (height and width)
+                mean_activation_list = flattened_activations.mean(dim=2)  # Mean across spatial dimensions
+
+                # Calculate the max activation across the spatial dimensions (height and width)
+                max_activation_list = flattened_activations.max(dim=2)[0]  # Get the max value across spatial dimensions
+
+                # Print the mean and max activation values for each filter
+                #print("Mean activation values for each filter:")
+                # for idx, mean_value in enumerate(mean_activation_list[0]):  # Iterate over each filter
+                #     print(f"Filter {idx}: {mean_value.item()}")
+
+                # print("\nMax activation values for each filter:")
+                # for idx, max_value in enumerate(max_activation_list[0]):  # Iterate over each filter
+                #     print(f"Filter {idx}: {max_value.item()}")
+                    
+                self.all_mean_activations.append(mean_activation_list)
+                self.all_max_activations.append(max_activation_list)
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()

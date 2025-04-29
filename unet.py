@@ -2,6 +2,7 @@ from torch import nn
 import torch
 import numpy as np
 
+
 @torch.jit.script
 def autocrop(encoder_layer: torch.Tensor, decoder_layer: torch.Tensor):
     """
@@ -291,9 +292,10 @@ class UNet(nn.Module):
                  normalization: str = 'batch',
                  conv_mode: str = 'samse',
                  dim: int = 2,
-                 up_mode: str = 'transposed'
+                 up_mode: str = 'transposed',
                  ):
         super().__init__()
+    
 
         #commented the fusion part for original UNet 
         
@@ -312,10 +314,10 @@ class UNet(nn.Module):
         
         #Version 3 increase the convolutions again
         # default common config conv
-        self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
+        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
         
-        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        self.cn2 = nn.Conv2d(in_channels, out_channels = in_channels, kernel_size = 3, padding="same", groups = in_channels)
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
         # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
         # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
@@ -336,9 +338,9 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        #self.in_channels = 3
         ##uncommented this part for original UNet
-        #self.in_channels = in_channels
+        self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -353,6 +355,13 @@ class UNet(nn.Module):
         self.down_blocks = []
         self.up_blocks = []
 
+        self.activations = {}
+
+        def hook_fn(module, input, output):
+        # Capture the output just before pooling (the second element in the tuple)
+            self.activations[module] = output[1].detach()
+        
+        
         # create encoder path
         for i in range(self.n_blocks):
             num_filters_in = self.in_channels if i == 0 else num_filters_out
@@ -368,6 +377,11 @@ class UNet(nn.Module):
                                    dim=self.dim)
 
             self.down_blocks.append(down_block)
+            #custom added feature analyze
+            # Register the hook for each DownBlock
+            for idx, down_block in enumerate(self.down_blocks):
+                down_block.register_forward_hook(hook_fn)
+
 
         # create decoder path (requires only n_blocks-1 blocks)
         for i in range(n_blocks - 1):
