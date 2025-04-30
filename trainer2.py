@@ -155,18 +155,18 @@ class Trainer2:
                 
             #feature analyze section eric
             ####    
-            last_epoch_mean_activation = self.all_mean_activations[-1]
-            last_epoch_max_activation = self.all_max_activations[-1]
+            # last_epoch_mean_activation = self.all_mean_activations[-1]
+            # last_epoch_max_activation = self.all_max_activations[-1]
 
-            # Print the mean activation values for each filter in the last epoch
-            print("Last Epoch - Mean activation values for each filter:")
-            for idx, mean_value in enumerate(last_epoch_mean_activation[0]):  # Iterate over each filter
-                print(f"Filter {idx}: {mean_value.item()}")
+            # # Print the mean activation values for each filter in the last epoch
+            # print("Last Epoch - Mean activation values for each filter:")
+            # for idx, mean_value in enumerate(last_epoch_mean_activation[0]):  # Iterate over each filter
+            #     print(f"Filter {idx}: {mean_value.item()}")
 
-            # Print the max activation values for each filter in the last epoch
-            print("\nLast Epoch - Max activation values for each filter:")
-            for idx, max_value in enumerate(last_epoch_max_activation[0]):  # Iterate over each filter
-                print(f"Filter {idx}: {max_value.item()}")
+            # # Print the max activation values for each filter in the last epoch
+            # print("\nLast Epoch - Max activation values for each filter:")
+            # for idx, max_value in enumerate(last_epoch_max_activation[0]):  # Iterate over each filter
+            #     print(f"Filter {idx}: {max_value.item()}")
             #####
 
         except Exception as e:
