@@ -338,9 +338,9 @@ class UNet(nn.Module):
         
         
         
-        #self.in_channels = 3
+        self.in_channels = 3
         ##uncommented this part for original UNet
-        self.in_channels = in_channels
+        #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -465,7 +465,7 @@ class UNet(nn.Module):
         # x4 = self.cn4(x)
         # x5 = self.cn5(x)
         # x6 = self.cn6(x)
-        # x7 = self.cn7(x)
+        # x7 = self.cn7(x)ss
         # x8 = self.cn8(x)
         # x9 = self.cn9(x)
         # x10 = self.cn10(x)
