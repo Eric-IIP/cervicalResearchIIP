@@ -303,7 +303,7 @@ class UNet(nn.Module):
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         
         #Version multiple 12.1
-        #self.cn1 = nn.Conv2d(in_channels, 1, 1, padding='same')
+        self.cn2 = nn.Conv2d(in_channels, 1, 1, padding='same')
         # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
         # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
         # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
@@ -312,7 +312,7 @@ class UNet(nn.Module):
         
         #Version 3 increase the convolutions again
         # default common config conv
-        self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
+        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
         
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
@@ -336,7 +336,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 1
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
