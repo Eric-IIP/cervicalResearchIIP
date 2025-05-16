@@ -86,7 +86,7 @@ class Trainer2:
         
         
         #ここでearlystoppingの打ち切り回数設定
-        early_stopping = EarlyStopping(patience = 50,verbose = True)
+        early_stopping = EarlyStopping(patience = 75,verbose = True)
         
         try:
             for i in progressbar:
