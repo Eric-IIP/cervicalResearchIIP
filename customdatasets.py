@@ -3,9 +3,10 @@ import numpy as np
 from skimage.io import imread
 from torch.utils import data
 from tqdm.notebook import tqdm
+import cv2
 
 
-
+## old custom dataset for training and validation 
 class SegmentationDataSet0(data.Dataset):
     #新たに追加したクラス。Numpyを読み込むようにする
     """Most basic image segmentation dataset."""
@@ -274,3 +275,38 @@ class SegmentationDataSetRandom(data.Dataset):
         x, y = x.type(self.inputs_dtype), y.type(self.targets_dtype)
 
         return {'x': x, 'y': y, 'x_name': f'x_name_{index}', 'y_name': f'y_name_{index}'}
+
+## new dataset for lazy loading
+class SegmentationDataSet4(data.Dataset):
+    def __init__(self, feature_paths, label_paths, transform=None):
+        self.feature_paths = feature_paths  # list of lists: [[f1, f2, ..., fn], [f1, ..., fn], ...]
+        self.label_paths = label_paths      # list of strings
+        self.transform = transform
+        self.inputs_dtype = torch.float32
+        self.targets_dtype = torch.long
+
+    def __len__(self):
+        return len(self.label_paths)
+
+    def __getitem__(self, index):
+        # Load label
+        label_path = self.label_paths[index]
+        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+        # Load features and stack them
+        feature_imgs = []
+        for path in self.feature_paths[index]:
+            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            feature_imgs.append(img.astype(np.float32))
+
+        x = np.stack(feature_imgs, axis=-1)  # (256, 256, n_channels)
+        y = label  # (256, 256)
+
+        # Optional transform
+        if self.transform:
+            x, y = self.transform(x, y)
+
+        # To tensor
+        x, y = torch.from_numpy(x).type(self.inputs_dtype), torch.from_numpy(y).type(self.targets_dtype)       
+
+        return x, y
