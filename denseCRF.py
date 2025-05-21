@@ -53,7 +53,7 @@ def noiseReduction(images_label_gray_general, label_img_names, label_dir, result
         d.addPairwiseGaussian(sxy=3, compat=10)
 
         # Inference
-        Q = d.inference(5)  # Perform 5 CRF iterations
+        Q = d.inference(5)  # Perform 15 CRF iterations
 
         # Convert Q into a label image
         refined_label = np.argmax(Q, axis=0)  # Most probable class for each pixel
