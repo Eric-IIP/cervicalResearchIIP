@@ -318,6 +318,7 @@ class UNet(nn.Module):
         
         
         self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
         # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
         # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
@@ -461,6 +462,7 @@ class UNet(nn.Module):
         
         #x1 = self.cn1(x)
         x = self.cn2(x)
+        
         #x3 = self.cn3(x)
         # x4 = self.cn4(x)
         # x5 = self.cn5(x)
