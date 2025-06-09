@@ -2,6 +2,11 @@ from torch import nn
 import torch
 import numpy as np
 
+from svimg import save_image_unique
+from svimg import tensor_to_image
+
+
+
 @torch.jit.script
 def autocrop(encoder_layer: torch.Tensor, decoder_layer: torch.Tensor):
     """
@@ -289,11 +294,14 @@ class UNet(nn.Module):
                  start_filters: int = 32,
                  activation: str = 'relu',  
                  normalization: str = 'batch',
-                 conv_mode: str = 'samse',
+                 conv_mode: str = 'same',
                  dim: int = 2,
-                 up_mode: str = 'transposed'
+                 up_mode: str = 'transposed',
+                 decoder_output: list = [],
+                 
                  ):
         super().__init__()
+    
 
         #commented the fusion part for original UNet 
         
@@ -303,7 +311,7 @@ class UNet(nn.Module):
         #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         
         #Version multiple 12.1
-        self.cn2 = nn.Conv2d(in_channels, 1, 1, padding='same')
+        #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding='same')
         # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
         # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
         # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
@@ -314,19 +322,23 @@ class UNet(nn.Module):
         # default common config conv
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
+        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 31)
+        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 5, padding="same")
         
-        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
         # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
         # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
         
         
-        # self.cn6 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 1)
+        
         # self.cn7 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
         # self.cn8 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
         # self.cn9 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
         
-        # self.cn10 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 1)
+        #self.cn3 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 7, padding="same")
+        #self.cn4 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 9, padding="same")
+        #self.cn5 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 11, padding="same")
+        #self.cn6 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 13, padding="same")
         # self.cn11 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 2)
         # self.cn12 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 3)
         # self.cn13 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 4)
@@ -336,7 +348,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 1
+        self.in_channels = 3
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -353,6 +365,22 @@ class UNet(nn.Module):
         self.down_blocks = []
         self.up_blocks = []
 
+        self.activations = {}
+        
+        
+        #recently added by eric decoder hook for visualization
+        self.decoder_output = []
+        
+        
+        def hook_fn(module, input, output):
+        # Capture the output just before pooling (the second element in the tuple)
+            self.decoder_output.append(output)
+        
+        # def hook_fn(module, input, output):
+        # # Capture the output just before pooling (the second element in the tuple)
+        #     self.activations[module] = output[1].detach()
+        
+        
         # create encoder path
         for i in range(self.n_blocks):
             num_filters_in = self.in_channels if i == 0 else num_filters_out
@@ -368,6 +396,11 @@ class UNet(nn.Module):
                                    dim=self.dim)
 
             self.down_blocks.append(down_block)
+            #custom added feature analyze
+            # Register the hook for each DownBlock
+            # for idx, down_block in enumerate(self.down_blocks):
+            #     down_block.register_forward_hook(hook_fn)
+
 
         # create decoder path (requires only n_blocks-1 blocks)
         for i in range(n_blocks - 1):
@@ -384,9 +417,14 @@ class UNet(nn.Module):
 
             self.up_blocks.append(up_block)
 
+        # for idx, block in enumerate(self.up_blocks):
+        #         up_block.register_forward_hook(hook_fn)
+                
         # final convolution
         self.conv_final = get_conv_layer(num_filters_out, self.out_channels, kernel_size=1, stride=1, padding=0,
                                          bias=True, dim=self.dim)
+        
+        
 
         # add the list of modules to current module
         self.down_blocks = nn.ModuleList(self.down_blocks)
@@ -445,23 +483,26 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        #x1 = self.cn1(x)
-        x = self.cn2(x)
+        x = self.cn1(x)
+        # x2 = self.cn2(x)
+        # x3 = self.cn3(x)
+        # x4 = self.cn4(x)
+        # x5 = self.cn5(x)
+        # x6 = self.cn6(x)
         #x3 = self.cn3(x)
         # x4 = self.cn4(x)
         # x5 = self.cn5(x)
         # x6 = self.cn6(x)
-        # x7 = self.cn7(x)
+        # x7 = self.cn7(x)ss
         # x8 = self.cn8(x)
         # x9 = self.cn9(x)
         # x10 = self.cn10(x)
         # x11 = self.cn11(x)
         # x12 = self.cn12(x)
         # x13 = self.cn13(x)
+        #x7 = x
         
-        
-        # x = torch.cat((x1, x2, x3
-        #                ), dim=1)
+        #x = torch.cat((x1, x2, x3, x4, x5, x6, x7), dim=1)
                 
         #x = x3
         # Encoder pathway
@@ -475,7 +516,19 @@ class UNet(nn.Module):
             x = module(before_pool, x)
 
         x = self.conv_final(x)
-
+        
+        # ## logic added by eric to illustrate segmask
+        # sp_cnt = 0
+        # if sp_cnt==0:
+        #     self.pre_x = x
+            
+        #     seg_ten = x.argmax(dim = 1)
+        #     img_np = tensor_to_image(seg_ten)
+        #     save_image_unique("/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/postFinalConvSegMaskOneforward/presegmask.png", img_np)
+            
+        #     sp_cnt = 1
+            
+        ##
         return x
 
     def __repr__(self):
