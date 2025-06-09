@@ -1,7 +1,10 @@
 import numpy as np
+import cv2
 import torch
 import time
 import logging
+from svimg import save_image_unique
+from svimg import tensor_to_image
 from torch.optim.lr_scheduler import (
     StepLR, 
     ExponentialLR, 
@@ -211,6 +214,28 @@ class Trainer2:
             self.optimizer.step()  # update the parameters
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
+        
+        ##recently added by eric, getting hook results to visualize masks
+        #sp_cnt= 0
+        #if sp_cnt == 0:
+            
+            #uses up all cuda memory in one forward pass
+            # #taking last upblock result in one epoch
+            # decoder_outputs = self.model.decoder_output
+            # iz = 0
+            # feat = decoder_outputs[len(decoder_outputs)-1]
+            # feat = feat[len(feat)-1]  # taking the last sample in the batch
+            # mean_feat = feat.mean(0).detach().cpu().numpy()
+            # resized = cv2.resize(mean_feat, (256, 256)) 
+            # path_name = f"/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/hook_up_result{str(iz)}.png"
+            # cv2.imwrite(path_name, resized)
+            
+            #taking last seg mask result in one epoch
+            # seg_ten = self.model.pre_x.argmax(dim = 1)
+            # img_np = tensor_to_image(seg_ten)
+            # save_image_unique("/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/presegmask.png", img_np)
+        #    sp_cnt = 1
+        ##
 
         
         self.training_loss.append(np.mean(train_losses))
@@ -247,20 +272,20 @@ class Trainer2:
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
                 
                 
-                ###custom feature map analyzing eric
-                first_block_activation = self.model.activations[self.model.down_blocks[0]]
+            #     ###custom feature map analyzing eric
+            #     first_block_activation = self.model.activations[self.model.down_blocks[0]]
 
-                abs_max_activation = torch.abs(torch.amax(first_block_activation, dim=[2, 3]))
+            #     abs_max_activation = torch.abs(torch.amax(first_block_activation, dim=[2, 3]))
         
-                # Sort activations and get the indices in descending order
-                sorted_activation_values, sorted_activation_indices = torch.sort(abs_max_activation, dim=0, descending=True)
-                flattened_activations = sorted_activation_values.view(sorted_activation_values.size(0), sorted_activation_values.size(1), -1)
+            #     # Sort activations and get the indices in descending order
+            #     sorted_activation_values, sorted_activation_indices = torch.sort(abs_max_activation, dim=0, descending=True)
+            #     flattened_activations = sorted_activation_values.view(sorted_activation_values.size(0), sorted_activation_values.size(1), -1)
 
-               # Calculate the mean activation across the spatial dimensions (height and width)
-                mean_activation_list = flattened_activations.mean(dim=2)  # Mean across spatial dimensions
+            #    # Calculate the mean activation across the spatial dimensions (height and width)
+            #     mean_activation_list = flattened_activations.mean(dim=2)  # Mean across spatial dimensions
 
-                # Calculate the max activation across the spatial dimensions (height and width)
-                max_activation_list = flattened_activations.max(dim=2)[0]  # Get the max value across spatial dimensions
+            #     # Calculate the max activation across the spatial dimensions (height and width)
+            #     max_activation_list = flattened_activations.max(dim=2)[0]  # Get the max value across spatial dimensions
 
                 # Print the mean and max activation values for each filter
                 #print("Mean activation values for each filter:")
@@ -271,8 +296,8 @@ class Trainer2:
                 # for idx, max_value in enumerate(max_activation_list[0]):  # Iterate over each filter
                 #     print(f"Filter {idx}: {max_value.item()}")
                     
-                self.all_mean_activations.append(mean_activation_list)
-                self.all_max_activations.append(max_activation_list)
+                #self.all_mean_activations.append(mean_activation_list)
+                #self.all_max_activations.append(max_activation_list)
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()

@@ -295,7 +295,6 @@ class SegmentationDataSet5(data.Dataset):
         for m, feature_img_path in enumerate(self.feature_paths[index]):
             input_featureimg = cv2.imread(feature_img_path, cv2.IMREAD_GRAYSCALE)
             dataset_img[:, :, m] = input_featureimg
-            
         
         # Load label
         label_path = self.label_paths[index]
