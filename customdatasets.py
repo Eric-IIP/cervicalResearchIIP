@@ -3,9 +3,10 @@ import numpy as np
 from skimage.io import imread
 from torch.utils import data
 from tqdm.notebook import tqdm
+import cv2
 
 
-
+## old custom dataset for training and validation 
 class SegmentationDataSet0(data.Dataset):
     #新たに追加したクラス。Numpyを読み込むようにする
     """Most basic image segmentation dataset."""
@@ -274,3 +275,39 @@ class SegmentationDataSetRandom(data.Dataset):
         x, y = x.type(self.inputs_dtype), y.type(self.targets_dtype)
 
         return {'x': x, 'y': y, 'x_name': f'x_name_{index}', 'y_name': f'y_name_{index}'}
+
+## new dataset for lazy loading
+class SegmentationDataSet5(data.Dataset):
+    def __init__(self, feature_paths: list, label_paths:list, feature_num, transform=None):
+        self.feature_paths = feature_paths  # list of lists: [[f1, f2, ..., fn], [f1, ..., fn], ...]
+        self.label_paths = label_paths      # list of strings
+        self.transform = transform
+        self.feature_num = feature_num
+        self.inputs_dtype = torch.float32
+        self.targets_dtype = torch.long
+
+    def __len__(self):
+        return len(self.feature_paths)
+
+    def __getitem__(self, index):
+        
+        dataset_img =  np.zeros((256, 256, self.feature_num), dtype=np.float32)
+        for m, feature_img_path in enumerate(self.feature_paths[index]):
+            input_featureimg = cv2.imread(feature_img_path, cv2.IMREAD_GRAYSCALE)
+            dataset_img[:, :, m] = input_featureimg
+        
+        # Load label
+        label_path = self.label_paths[index]
+        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+
+        x = dataset_img
+        y = label  
+
+        if self.transform is not None:
+            x, y = self.transform(x, y)
+
+        # Typecasting
+        x, y = torch.from_numpy(x).type(self.inputs_dtype), torch.from_numpy(y).type(self.targets_dtype)
+
+        return x, y
