@@ -4,6 +4,9 @@ from skimage.io import imread
 from torch.utils import data
 from tqdm.notebook import tqdm
 import cv2
+from scipy import ndimage
+from skimage.measure import label as sk_label
+from skimage.measure import regionprops
 
 
 ## old custom dataset for training and validation 
@@ -275,6 +278,11 @@ class SegmentationDataSetRandom(data.Dataset):
         x, y = x.type(self.inputs_dtype), y.type(self.targets_dtype)
 
         return {'x': x, 'y': y, 'x_name': f'x_name_{index}', 'y_name': f'y_name_{index}'}
+    
+    
+    
+    
+
 
 ## new dataset for lazy loading
 class SegmentationDataSet5(data.Dataset):
@@ -311,3 +319,79 @@ class SegmentationDataSet5(data.Dataset):
         x, y = torch.from_numpy(x).type(self.inputs_dtype), torch.from_numpy(y).type(self.targets_dtype)
 
         return x, y
+    
+    
+
+
+    
+    ## custom dataset for mask rcnn
+class SegmentationDataSetMaskRcnn(data.Dataset):
+    def __init__(self, label_paths:list, transform=None):
+        self.image_paths = label_paths
+        self.label_paths = label_paths      # list of strings
+        self.transform = transform
+        self.inputs_dtype = torch.float32
+        self.targets_dtype = torch.long
+
+    def __len__(self):
+        return len(self.label_paths)
+
+    def __getitem__(self, index):
+        # in this case feature paths and label paths are same
+        # but keep separate logically
+        # for p in self.label_paths:
+        #     print(p, type(p))
+
+        # reading multi class mask
+        #dataset_img =  np.zeros((256, 256, 1), dtype=np.float32)
+        input_img = cv2.imread(self.label_paths[index], cv2.IMREAD_GRAYSCALE)
+        dataset_img = input_img
+        # convert it into binary mask
+        dataset_img = (dataset_img > 0).astype(np.uint8)
+        
+        
+        # Load label
+        label_path = self.label_paths[index]
+        label = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
+
+
+        x = dataset_img
+        y = label  
+        # because rcnn with pretrained requires 3 channels so copying same tensor 3 times
+        x = x.repeat(3, 1, 1)
+        y = yToRcnn(y)
+        
+        return x, y
+
+def yToRcnn(y):
+    
+    masks = []
+    boxes = []
+    labels = []
+    
+    unique_val = np.unique(y)
+    unique_val = unique_val[unique_val != 0]
+    
+    for val in unique_val:
+        single_class_mask = (y==val).astype(np.uint8)
+        pos = np.where(single_class_mask)
+        
+        if pos[0].size == 0 or pos[1].size == 0:
+            continue # skipping empty mask
+        
+        xmin = np.min(pos[1])
+        xmax = np.max(pos[1])
+        ymin = np.min(pos[0])
+        ymax = np.max(pos[0])
+        
+        boxes.append([xmin, ymin, xmax, ymax])
+        masks.append(torch.tensor(single_class_mask), dtype = torch.uint8)
+        labels.append(val)
+        
+        target = {
+            "boxes": torch.tensor(boxes, dtype=torch.float32),
+            "labels": torch.tensor(labels, dtype=torch.float32),
+            "boxes": torch.tensor(labels, dtype=torch.float32),
+        }
+        
+        return target
