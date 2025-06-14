@@ -357,8 +357,12 @@ class SegmentationDataSetMaskRcnn(data.Dataset):
 
         x = dataset_img
         y = label  
+        x = torch.from_numpy(x).float()
         # because rcnn with pretrained requires 3 channels so copying same tensor 3 times
-        x = x.repeat(3, 1, 1)
+        if x.ndim == 2:  # shape [H, W]
+            x = x.unsqueeze(0).repeat(3, 1, 1)  # [1, H, W] → [3, H, W]
+        elif x.shape[0] == 1:  # [1, H, W]
+            x = x.repeat(3, 1, 1)
         y = yToRcnn(y)
         
         return x, y
@@ -385,13 +389,13 @@ def yToRcnn(y):
         ymax = np.max(pos[0])
         
         boxes.append([xmin, ymin, xmax, ymax])
-        masks.append(torch.tensor(single_class_mask), dtype = torch.uint8)
+        masks.append(torch.tensor(single_class_mask, dtype = torch.uint8))
         labels.append(val)
         
         target = {
             "boxes": torch.tensor(boxes, dtype=torch.float32),
-            "labels": torch.tensor(labels, dtype=torch.float32),
-            "boxes": torch.tensor(labels, dtype=torch.float32),
+            "labels": torch.tensor(labels, dtype=torch.int64),
+            "masks": torch.stack(masks)
         }
         
-        return target
+    return target

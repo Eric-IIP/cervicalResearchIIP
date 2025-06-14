@@ -53,8 +53,8 @@ class Trainer2MaskRCNN:
         # Move model to device
         self.model.to(device)
     def run_trainer(self):
-        self.train(self)
-        self.validate(self)
+        self.train()
+        self.validate()
     
     def train(self):
         device = self.device
@@ -90,6 +90,7 @@ class Trainer2MaskRCNN:
                 images = list(img.to(device) for img in images)
                 targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
+                
                 outputs = model(images)
 
                 for pred, target in zip(outputs, targets):
