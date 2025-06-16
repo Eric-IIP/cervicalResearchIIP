@@ -322,7 +322,8 @@ class UNet(nn.Module):
         # default common config conv
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
-        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 31)
+        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 5, padding="same")
         
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
@@ -348,7 +349,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 6
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -483,7 +484,8 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        x = self.cn1(x)
+        x1 = self.cn1(x)
+        x2 = self.cn2(x)
         # x2 = self.cn2(x)
         # x3 = self.cn3(x)
         # x4 = self.cn4(x)
@@ -502,7 +504,7 @@ class UNet(nn.Module):
         # x13 = self.cn13(x)
         #x7 = x
         
-        #x = torch.cat((x1, x2, x3, x4, x5, x6, x7), dim=1)
+        x = torch.cat((x1, x2), dim=1)
                 
         #x = x3
         # Encoder pathway

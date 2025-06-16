@@ -4,6 +4,7 @@ from torchvision.models.detection import maskrcnn_resnet50_fpn
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
+
 def get_maskrcnn_model(num_classes, pretrained=True):
     """Create Mask R-CNN model"""
     model = maskrcnn_resnet50_fpn(pretrained=pretrained)
@@ -17,6 +18,17 @@ def get_maskrcnn_model(num_classes, pretrained=True):
     hidden_layer = 256
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, hidden_layer, num_classes)
     
+    model.rpn.nms_thresh = 0.5
+    model.rpn.fg_iou-thresh = 0.7
+    model.rpn.bg_iou-thresh = 0.3
+
+    model.roi_heads.box_roi_pool.sampling_ratio = 2
+    model.roi_heads.mask_roi_pool.sampling_ratio = 2
+    
+    model.roi_heads.score_thresh = 0.7
+    model.roi_heads.nms_thresh = 0.3
+    model.roi_heads.detections_per_img = 200
+        
     return model
     
     
