@@ -326,7 +326,8 @@ class SegmentationDataSet5(data.Dataset):
     
     ## custom dataset for mask rcnn
 class SegmentationDataSetMaskRcnn(data.Dataset):
-    def __init__(self, label_paths:list, transform=None):
+    def __init__(self,input_paths:list, label_paths:list, transform=None):
+        self.input_paths = input_paths
         self.image_paths = label_paths
         self.label_paths = label_paths      # list of strings
         self.transform = transform
@@ -344,10 +345,16 @@ class SegmentationDataSetMaskRcnn(data.Dataset):
 
         # reading multi class mask
         #dataset_img =  np.zeros((256, 256, 1), dtype=np.float32)
-        input_img = cv2.imread(self.label_paths[index], cv2.IMREAD_GRAYSCALE)
+        
+        #unet based mrcnnn
+        #input_img = cv2.imread(self.label_paths[index], cv2.IMREAD_GRAYSCALE)
+        
+        #pure mrcnn on gry
+        input_img = cv2.imread(self.input_paths[index], cv2.IMREAD_GRAYSCALE)
+        
         dataset_img = input_img
-        # convert it into binary mask
-        dataset_img = (dataset_img > 0).astype(np.uint8)
+        # convert it into binary mask, only when unet based mrcnn
+        #dataset_img = (dataset_img > 0).astype(np.uint8)
         
         
         # Load label
