@@ -18,6 +18,48 @@ def predict(img,
 
     return result
 
+# def predict_mrcnn(img,
+#                   model,
+#                   preprocess,
+#                   postprocess,
+#                   device,
+#                   score_threshold=0.5):
+#     if img is None:
+#         raise ValueError("Input image is None. Check if the path is correct and image is readable.")
+#     model.eval()
+
+#     # preprocess
+#     x = torch.from_numpy(img).float().to(device)
+#     if x.ndim == 2:
+#         x = x.unsqueeze(0).repeat(3, 1, 1)  # [H, W] → [3, H, W]
+#     elif x.shape[0] == 1:
+#         x = x.repeat(3, 1, 1)              # [1, H, W] → [3, H, W]
+
+#     # inference
+#     with torch.no_grad():
+#         output = model([x])
+
+#     output = output[0]
+    
+#     masks = output['masks'] > 0.5  # shape: [N, 1, H, W]
+#     masks = masks.squeeze(1)       # shape: [N, H, W]
+#     labels = output['labels']      # shape: [N]
+
+#     if len(masks) == 0:
+#         # No predictions, return empty mask
+#         mask_result = np.zeros((img.shape[1], img.shape[2]), dtype=np.uint8)
+
+#     # Combine all masks into one labeled mask
+#     instance_mask = torch.zeros_like(masks[0], dtype=torch.uint8)
+#     for i, mask in enumerate(masks):
+#         class_label = labels[i].item()
+#         instance_mask[mask] = class_label
+
+#     # Convert to NumPy and append
+#     instance_mask_np = instance_mask.cpu().numpy().astype(np.uint8)
+#     return [instance_mask_np]
+
+
 def predict_mrcnn(img,
                   model,
                   preprocess,
@@ -35,27 +77,35 @@ def predict_mrcnn(img,
     elif x.shape[0] == 1:
         x = x.repeat(3, 1, 1)              # [1, H, W] → [3, H, W]
 
+    # Store the spatial dimensions for creating empty masks
+    height, width = x.shape[-2], x.shape[-1]
+
     # inference
     with torch.no_grad():
         output = model([x])
 
     output = output[0]
     
-    masks = output['masks'] > 0.5  # shape: [N, 1, H, W]
-    masks = masks.squeeze(1)       # shape: [N, H, W]
-    labels = output['labels']      # shape: [N]
+    # Filter by score threshold first
+    scores = output['scores']
+    keep = scores >= score_threshold
+    
+    masks = output['masks'][keep] > 0.5  # shape: [N, 1, H, W]
+    masks = masks.squeeze(1)             # shape: [N, H, W]
+    labels = output['labels'][keep]      # shape: [N]
 
     if len(masks) == 0:
-        # No predictions, return empty mask
-        mask_result = np.zeros((img.shape[1], img.shape[2]), dtype=np.uint8)
+        # No predictions, return empty mask using the processed image dimensions
+        mask_result = np.zeros((height, width), dtype=np.uint8)
+        return [mask_result]
 
     # Combine all masks into one labeled mask
-    instance_mask = torch.zeros_like(masks[0], dtype=torch.uint8)
+    instance_mask = torch.zeros((height, width), dtype=torch.uint8, device=device)
     for i, mask in enumerate(masks):
         class_label = labels[i].item()
         instance_mask[mask] = class_label
 
-    # Convert to NumPy and append
+    # Convert to NumPy and return
     instance_mask_np = instance_mask.cpu().numpy().astype(np.uint8)
     return [instance_mask_np]
 
