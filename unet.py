@@ -322,7 +322,7 @@ class UNet(nn.Module):
         # default common config conv
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
-        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 31)
+        self.cn1 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 1, padding="same")
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 5, padding="same")
         
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
@@ -348,7 +348,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 1
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
