@@ -347,16 +347,16 @@ class SegmentationDataSetMaskRcnn(data.Dataset):
         #dataset_img =  np.zeros((256, 256, 1), dtype=np.float32)
         
         #unet based mrcnnn
-        #input_img = cv2.imread(self.label_paths[index], cv2.IMREAD_GRAYSCALE)
+        input_img = cv2.imread(self.label_paths[index], cv2.IMREAD_GRAYSCALE)
         
         #pure mrcnn on gry
-        input_img = cv2.imread(self.input_paths[index], cv2.IMREAD_GRAYSCALE)
+        #input_img = cv2.imread(self.input_paths[index], cv2.IMREAD_GRAYSCALE)
         
         input_img = input_img.astype(np.float32) / 255.0
         
         dataset_img = input_img
         # convert it into binary mask, only when unet based mrcnn
-        #dataset_img = (dataset_img > 0).astype(np.uint8)
+        dataset_img = (dataset_img > 0).astype(np.uint8)
         
         
         # Load label

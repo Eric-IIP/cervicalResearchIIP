@@ -308,7 +308,7 @@ class UNet(nn.Module):
         print("in constructor inchannel: " + str(in_channels))
         
         # Version single 1x1
-        self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same') 
+        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same') 
         #Version multiple 12.1
         #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding='same')
         # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
@@ -322,7 +322,7 @@ class UNet(nn.Module):
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
         
         #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
-        self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
+        #self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 5, padding="same")
         
         #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
@@ -348,9 +348,9 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        #self.in_channels = 3
         ##uncommented this part for original UNet
-        #self.in_channels = in_channels
+        self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -481,10 +481,10 @@ class UNet(nn.Module):
         # x = output_tensor
         #256x256x45
         
-        x = self.fusion(x)
+        #x = self.fusion(x)
         
         
-        x = self.cn1(x)
+        #x = self.cn1(x)
         #x2 = self.cn2(x)
         # x2 = self.cn2(x)
         # x3 = self.cn3(x)
