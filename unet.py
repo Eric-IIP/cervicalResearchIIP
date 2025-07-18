@@ -308,7 +308,7 @@ class UNet(nn.Module):
         print("in constructor inchannel: " + str(in_channels))
         
         # Version single 1x1
-        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same') 
+        self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same') 
         #Version multiple 12.1
         #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding='same')
         # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
