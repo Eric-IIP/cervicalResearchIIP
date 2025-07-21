@@ -5,6 +5,8 @@ import numpy as np
 from svimg import save_image_unique
 from svimg import tensor_to_image
 
+from foveation import FoveatedSamplingConv2d
+from foveation import ConcreteFoveatedSamplingConv2d
 
 
 @torch.jit.script
@@ -307,7 +309,10 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
+        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        
+        
+        self.foveation = ConcreteFoveatedSamplingConv2d(in_channels = 3, out_channels = 3, kernel_size = 7)
         
         
         # Version single 1x1
@@ -486,7 +491,10 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        x = self.fusion(x)
+        x1 = self.fusion(x)
+        x2 = self.foveation(x)
+        x = torch.cat((x1, x2), dim=1)
+        
         # x2 = self.cn2(x)
         # x3 = self.cn3(x)
         # x4 = self.cn4(x)

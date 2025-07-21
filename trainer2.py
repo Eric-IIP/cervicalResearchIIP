@@ -154,6 +154,10 @@ class Trainer2:
                 if early_stopping.early_stop:
                     print(f"early stopping epoch:",i)
                     self.logger.info(f"Early stopping epoch: {i}")
+                    
+                    # self.model.load_state_dict(torch.load('checkpoint.pt'))
+                    # print("Loaded best model weights from early stopping checkpoint")   
+                    
                     break
                 
             #feature analyze section eric
