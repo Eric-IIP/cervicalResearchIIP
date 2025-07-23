@@ -142,6 +142,9 @@ class Trainer2:
                         
                         
                 print('val_losses',self.validation_loss[i])
+                ## for ensembleinspiredloss
+                #print(self.criterion.get_loss_breakdown())
+                
 
                 # Logging
                 self.logger.info(f'Epoch: {i + 1}')

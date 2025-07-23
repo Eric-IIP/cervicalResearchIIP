@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 class DiceLoss(nn.Module):
     def __init__(self, smooth=1.0):
@@ -98,3 +99,204 @@ class ExponentialLogCE_DiceLoss(nn.Module):
         
         return expDiceCEloss
         
+class EnsembleInspiredLoss(nn.Module):
+    def __init__(self, dst_threshold=2.0, upp_dst_threshold=8.0, 
+                 area_ratio_threshold=200, image_size=256):
+        super(EnsembleInspiredLoss, self).__init__()
+        
+        self.dst_threshold = dst_threshold
+        self.upp_dst_threshold = upp_dst_threshold
+        self.area_ratio_threshold = area_ratio_threshold
+        self.image_size = image_size
+        
+        # Loss component weights
+        self.distance_weight = 1.0
+        self.connectivity_weight = 2.0
+        self.area_consistency_weight = 0.5
+        self.base_ce_weight = 1.0
+        
+        # Base loss
+        self.ce_loss = nn.CrossEntropyLoss()
+        
+        # Create coordinate grids for distance calculations
+        self.register_buffer('y_coords', torch.arange(image_size).float().view(1, 1, image_size, 1))
+        self.register_buffer('x_coords', torch.arange(image_size).float().view(1, 1, 1, image_size))
+        
+    def compute_centroid(self, mask):
+        """
+        Compute centroid of a soft mask (differentiable version of mean position)
+        mask: [B, H, W] soft mask values between 0 and 1
+        """
+        # Weighted average of coordinates
+        total_mass = mask.sum(dim=(1, 2), keepdim=True) + 1e-8  # [B, 1, 1]
+        
+        # Compute weighted centroids
+        y_centroid = (mask * self.y_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
+        x_centroid = (mask * self.x_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
+        
+        return y_centroid.squeeze(), x_centroid.squeeze()  # [B], [B]
+    
+    def euclidean_distance_loss(self, pred_soft, target_onehot):
+        """
+        Penalize when predicted and ground truth centroids are far apart
+        Similar to your euclidean_dst function but differentiable
+        """
+        num_classes = pred_soft.shape[1]
+        distance_losses = []
+        
+        for c in range(num_classes):
+            pred_mask = pred_soft[:, c]  # [B, H, W]
+            target_mask = target_onehot[:, c]  # [B, H, W]
+            
+            # Skip if no target pixels for this class
+            class_present = target_mask.sum(dim=(1, 2)) > 0  # [B]
+            
+            if class_present.sum() > 0:
+                # Compute centroids
+                pred_y, pred_x = self.compute_centroid(pred_mask)
+                target_y, target_x = self.compute_centroid(target_mask)
+                
+                # Euclidean distance
+                distance = torch.sqrt((pred_x - target_x)**2 + (pred_y - target_y)**2 + 1e-8)
+                
+                # Penalty based on your thresholds
+                penalty = torch.where(
+                    distance < self.dst_threshold,
+                    torch.zeros_like(distance),  # Good case - no penalty
+                    torch.where(
+                        distance < self.upp_dst_threshold,
+                        distance / self.upp_dst_threshold,  # Moderate penalty
+                        torch.ones_like(distance) * 2.0  # High penalty for far distances
+                    )
+                )
+                
+                # Only apply to batches where class is present
+                penalty = penalty * class_present.float()
+                distance_losses.append(penalty.mean())
+        
+        return torch.stack(distance_losses).mean() if distance_losses else torch.tensor(0.0)
+    
+    def connectivity_loss(self, pred_soft):
+        """
+        Encourage connectivity by penalizing fragmented predictions
+        Soft approximation of your connected() function
+        """
+        connectivity_losses = []
+        
+        for c in range(pred_soft.shape[1]):
+            class_pred = pred_soft[:, c]  # [B, H, W]
+            
+            # Compute "connectivity" using local coherence
+            # Penalize when neighboring pixels have very different predictions
+            
+            # Horizontal differences
+            h_diff = torch.abs(class_pred[:, :, 1:] - class_pred[:, :, :-1])
+            # Vertical differences  
+            v_diff = torch.abs(class_pred[:, 1:, :] - class_pred[:, :-1, :])
+            
+            # Average local variation (higher = more fragmented)
+            h_variation = h_diff.mean(dim=(1, 2))  # [B]
+            v_variation = v_diff.mean(dim=(1, 2))  # [B]
+            
+            connectivity_penalty = (h_variation + v_variation) / 2
+            connectivity_losses.append(connectivity_penalty.mean())
+        
+        return torch.stack(connectivity_losses).mean() if connectivity_losses else torch.tensor(0.0)
+    
+    def area_consistency_loss(self, pred_soft, target_onehot):
+        """
+        Penalize large differences in predicted vs target area
+        Similar to your SA_u vs SA_m comparison
+        """
+        area_losses = []
+        
+        for c in range(pred_soft.shape[1]):
+            pred_area = pred_soft[:, c].sum(dim=(1, 2))  # [B]
+            target_area = target_onehot[:, c].sum(dim=(1, 2))  # [B]
+            
+            # Skip if no target area
+            class_present = target_area > 0
+            
+            if class_present.sum() > 0:
+                # Relative area difference
+                area_ratio = pred_area / (target_area + 1e-8)
+                
+                # Penalty for ratios far from 1.0
+                area_penalty = torch.abs(torch.log(area_ratio + 1e-8))
+                
+                # Apply threshold similar to your area_ratio_threshold
+                normalized_penalty = torch.clamp(area_penalty / 2.0, 0, 1)  # Normalize
+                
+                # Only apply to batches where class is present
+                penalty = normalized_penalty * class_present.float()
+                area_losses.append(penalty.mean())
+        
+        return torch.stack(area_losses).mean() if area_losses else torch.tensor(0.0)
+    
+    def missing_class_penalty(self, pred_soft, target_onehot):
+        """
+        Heavy penalty when model completely misses a class that should be present
+        Similar to your logic gate 1 and 2 cases
+        """
+        missing_penalties = []
+        
+        for c in range(pred_soft.shape[1]):
+            pred_area = pred_soft[:, c].sum(dim=(1, 2))  # [B]
+            target_area = target_onehot[:, c].sum(dim=(1, 2))  # [B]
+            
+            # Class should be present but prediction is almost zero
+            should_exist = target_area > 10  # Threshold for "class exists"
+            barely_predicted = pred_area < 1.0  # Almost no prediction
+            
+            missing_mask = should_exist & barely_predicted
+            penalty = missing_mask.float() * 5.0  # Heavy penalty
+            
+            missing_penalties.append(penalty.mean())
+        
+        return torch.stack(missing_penalties).mean() if missing_penalties else torch.tensor(0.0)
+    
+    def forward(self, pred, target):
+        """
+        pred: [B, C, H, W] - model predictions (logits)
+        target: [B, H, W] - ground truth class indices
+        """
+        # Convert to soft predictions and one-hot targets
+        pred_soft = torch.softmax(pred, dim=1)
+        target_onehot = F.one_hot(target.long(), pred.shape[1]).float()
+        target_onehot = target_onehot.permute(0, 3, 1, 2)  # [B, C, H, W]
+        
+        # Base classification loss
+        ce_loss = self.ce_loss(pred, target)
+        
+        # Custom loss components based on your ensemble logic
+        distance_loss = self.euclidean_distance_loss(pred_soft, target_onehot)
+        connectivity_loss = self.connectivity_loss(pred_soft)
+        #area_loss = self.area_consistency_loss(pred_soft, target_onehot)
+        #missing_loss = self.missing_class_penalty(pred_soft, target_onehot)
+        
+        # Combine all components
+        total_loss = (
+            self.base_ce_weight * ce_loss +
+            self.distance_weight * distance_loss +
+            self.connectivity_weight * connectivity_loss 
+            #self.area_consistency_weight * area_loss +
+            #2.0 * missing_loss  # Heavy weight for missing classes
+        )
+        
+        # Store components for monitoring
+        self.loss_components = {
+            'ce': ce_loss.item(),
+            'distance': distance_loss.item(),
+            'connectivity': connectivity_loss.item(),
+            # 'area': area_loss.item(),
+            # 'missing': missing_loss.item(),
+            'total': total_loss.item()
+        }
+        
+        return total_loss
+    
+    def get_loss_breakdown(self):
+        """Get detailed breakdown of loss components"""
+        if hasattr(self, 'loss_components'):
+            return self.loss_components
+        return {}
