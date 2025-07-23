@@ -5,8 +5,9 @@ import numpy as np
 from svimg import save_image_unique
 from svimg import tensor_to_image
 
-from foveation import FoveatedSamplingConv2d
-from foveation import ConcreteFoveatedSamplingConv2d
+from foveation import FoveatedConv2d
+from foveation import FastFoveatedConv2d
+from foveation import UltraFastFoveatedConv2d
 
 
 @torch.jit.script
@@ -309,10 +310,13 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         
+        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         
-        self.foveation = ConcreteFoveatedSamplingConv2d(in_channels = 3, out_channels = 3, kernel_size = 7)
+        self.foveation = UltraFastFoveatedConv2d(in_channels = 108, out_channels = 3)
+        
+        self.foveation2 = UltraFastFoveatedConv2d(in_channels = 3, out_channels = 3)
         
         
         # Version single 1x1
@@ -356,7 +360,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 6
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -491,9 +495,13 @@ class UNet(nn.Module):
         #x = self.fusion(x)
         
         
-        x1 = self.fusion(x)
+        #x1 = self.fusion(x) 
         x2 = self.foveation(x)
-        x = torch.cat((x1, x2), dim=1)
+        #x3 = self.foveation2(x1)
+        x4 = self.fusion2(x2)
+        
+        #x3 = self.foveation(x1)
+        x = torch.cat((x2, x4), dim=1)
         
         # x2 = self.cn2(x)
         # x3 = self.cn3(x)
