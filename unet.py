@@ -310,13 +310,13 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
+        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
         
-        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
+        # self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         
-        self.foveation = UltraFastFoveatedConv2d(in_channels = 108, out_channels = 3)
+        # self.foveation = UltraFastFoveatedConv2d(in_channels = 108, out_channels = 3)
         
-        self.foveation2 = UltraFastFoveatedConv2d(in_channels = 3, out_channels = 3)
+        # self.foveation2 = UltraFastFoveatedConv2d(in_channels = 3, out_channels = 3)
         
         
         # Version single 1x1
@@ -360,7 +360,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 6
+        self.in_channels = 3
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -492,16 +492,16 @@ class UNet(nn.Module):
         # output_tensor = torch.cat(split_tensors, dim = 1)
         # x = output_tensor
         
-        #x = self.fusion(x)
+        x = self.fusion(x)
         
         
         #x1 = self.fusion(x) 
-        x2 = self.foveation(x)
+        #x2 = self.foveation(x)
         #x3 = self.foveation2(x1)
-        x4 = self.fusion2(x2)
+        #x4 = self.fusion2(x2)
         
         #x3 = self.foveation(x1)
-        x = torch.cat((x2, x4), dim=1)
+        #x = torch.cat((x2, x4), dim=1)
         
         # x2 = self.cn2(x)
         # x3 = self.cn3(x)
