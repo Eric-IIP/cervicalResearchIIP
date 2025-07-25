@@ -110,29 +110,34 @@ class EnsembleInspiredLoss(nn.Module):
         self.image_size = image_size
         
         # Loss component weights
-        self.distance_weight = 1.0
-        self.connectivity_weight = 2.0
+        self.distance_weight = 0.5
+        self.connectivity_weight = 0.5
         self.area_consistency_weight = 0.5
         self.base_ce_weight = 1.0
         
         # Base loss
         self.ce_loss = nn.CrossEntropyLoss()
         
-        # Create coordinate grids for distance calculations
-        self.register_buffer('y_coords', torch.arange(image_size).float().view(1, 1, image_size, 1))
-        self.register_buffer('x_coords', torch.arange(image_size).float().view(1, 1, 1, image_size))
+        # We'll create coordinate grids dynamically to ensure correct device
         
     def compute_centroid(self, mask):
         """
         Compute centroid of a soft mask (differentiable version of mean position)
         mask: [B, H, W] soft mask values between 0 and 1
         """
+        device = mask.device
+        B, H, W = mask.shape
+        
+        # Create coordinate grids on the same device as mask
+        y_coords = torch.arange(H, device=device, dtype=mask.dtype).view(1, H, 1)
+        x_coords = torch.arange(W, device=device, dtype=mask.dtype).view(1, 1, W)
+        
         # Weighted average of coordinates
         total_mass = mask.sum(dim=(1, 2), keepdim=True) + 1e-8  # [B, 1, 1]
         
         # Compute weighted centroids
-        y_centroid = (mask * self.y_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
-        x_centroid = (mask * self.x_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
+        y_centroid = (mask * y_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
+        x_centroid = (mask * x_coords).sum(dim=(1, 2), keepdim=True) / total_mass  # [B, 1, 1]
         
         return y_centroid.squeeze(), x_centroid.squeeze()  # [B], [B]
     
@@ -143,6 +148,7 @@ class EnsembleInspiredLoss(nn.Module):
         """
         num_classes = pred_soft.shape[1]
         distance_losses = []
+        device = pred_soft.device
         
         for c in range(num_classes):
             pred_mask = pred_soft[:, c]  # [B, H, W]
@@ -174,7 +180,10 @@ class EnsembleInspiredLoss(nn.Module):
                 penalty = penalty * class_present.float()
                 distance_losses.append(penalty.mean())
         
-        return torch.stack(distance_losses).mean() if distance_losses else torch.tensor(0.0)
+        if distance_losses:
+            return torch.stack(distance_losses).mean()
+        else:
+            return torch.tensor(0.0, device=device, dtype=pred_soft.dtype)
     
     def connectivity_loss(self, pred_soft):
         """
@@ -182,6 +191,7 @@ class EnsembleInspiredLoss(nn.Module):
         Soft approximation of your connected() function
         """
         connectivity_losses = []
+        device = pred_soft.device
         
         for c in range(pred_soft.shape[1]):
             class_pred = pred_soft[:, c]  # [B, H, W]
@@ -201,7 +211,10 @@ class EnsembleInspiredLoss(nn.Module):
             connectivity_penalty = (h_variation + v_variation) / 2
             connectivity_losses.append(connectivity_penalty.mean())
         
-        return torch.stack(connectivity_losses).mean() if connectivity_losses else torch.tensor(0.0)
+        if connectivity_losses:
+            return torch.stack(connectivity_losses).mean()
+        else:
+            return torch.tensor(0.0, device=device, dtype=pred_soft.dtype)
     
     def area_consistency_loss(self, pred_soft, target_onehot):
         """
@@ -209,6 +222,7 @@ class EnsembleInspiredLoss(nn.Module):
         Similar to your SA_u vs SA_m comparison
         """
         area_losses = []
+        device = pred_soft.device
         
         for c in range(pred_soft.shape[1]):
             pred_area = pred_soft[:, c].sum(dim=(1, 2))  # [B]
@@ -231,7 +245,10 @@ class EnsembleInspiredLoss(nn.Module):
                 penalty = normalized_penalty * class_present.float()
                 area_losses.append(penalty.mean())
         
-        return torch.stack(area_losses).mean() if area_losses else torch.tensor(0.0)
+        if area_losses:
+            return torch.stack(area_losses).mean()
+        else:
+            return torch.tensor(0.0, device=device, dtype=pred_soft.dtype)
     
     def missing_class_penalty(self, pred_soft, target_onehot):
         """
@@ -239,6 +256,7 @@ class EnsembleInspiredLoss(nn.Module):
         Similar to your logic gate 1 and 2 cases
         """
         missing_penalties = []
+        device = pred_soft.device
         
         for c in range(pred_soft.shape[1]):
             pred_area = pred_soft[:, c].sum(dim=(1, 2))  # [B]
@@ -253,7 +271,10 @@ class EnsembleInspiredLoss(nn.Module):
             
             missing_penalties.append(penalty.mean())
         
-        return torch.stack(missing_penalties).mean() if missing_penalties else torch.tensor(0.0)
+        if missing_penalties:
+            return torch.stack(missing_penalties).mean()
+        else:
+            return torch.tensor(0.0, device=device, dtype=pred_soft.dtype)
     
     def forward(self, pred, target):
         """
@@ -278,7 +299,7 @@ class EnsembleInspiredLoss(nn.Module):
         total_loss = (
             self.base_ce_weight * ce_loss +
             self.distance_weight * distance_loss +
-            self.connectivity_weight * connectivity_loss 
+            self.connectivity_weight * connectivity_loss #+
             #self.area_consistency_weight * area_loss +
             #2.0 * missing_loss  # Heavy weight for missing classes
         )
@@ -288,8 +309,8 @@ class EnsembleInspiredLoss(nn.Module):
             'ce': ce_loss.item(),
             'distance': distance_loss.item(),
             'connectivity': connectivity_loss.item(),
-            # 'area': area_loss.item(),
-            # 'missing': missing_loss.item(),
+            #'area': area_loss.item(),
+            #'missing': missing_loss.item(),
             'total': total_loss.item()
         }
         
