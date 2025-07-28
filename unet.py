@@ -308,7 +308,7 @@ class UNet(nn.Module):
 
         #commented the fusion part for original UNet 
         
-        print("in constructor inchannel: " + str(in_channels))
+        #print("in constructor inchannel: " + str(in_channels))
         
         self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
         
@@ -363,7 +363,7 @@ class UNet(nn.Module):
         self.in_channels = 3
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
-        print("Input channel count" + str(self.in_channels))
+        #print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
         self.n_blocks = n_blocks

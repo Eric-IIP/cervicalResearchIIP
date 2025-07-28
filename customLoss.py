@@ -100,7 +100,7 @@ class ExponentialLogCE_DiceLoss(nn.Module):
         return expDiceCEloss
         
 class EnsembleInspiredLoss(nn.Module):
-    def __init__(self, dst_threshold=2.0, upp_dst_threshold=8.0, 
+    def __init__(self, ce_weight = 1.0, distance_weight = 0.5, connectivity_weight = 0.5, dst_threshold=2.0, upp_dst_threshold=8.0, 
                  area_ratio_threshold=200, image_size=256):
         super(EnsembleInspiredLoss, self).__init__()
         
@@ -110,10 +110,12 @@ class EnsembleInspiredLoss(nn.Module):
         self.image_size = image_size
         
         # Loss component weights
-        self.distance_weight = 0.5
-        self.connectivity_weight = 0.5
+        self.base_ce_weight = ce_weight
+        self.distance_weight = distance_weight
+        self.connectivity_weight = connectivity_weight
+        # not using for now
         self.area_consistency_weight = 0.5
-        self.base_ce_weight = 1.0
+        
         
         # Base loss
         self.ce_loss = nn.CrossEntropyLoss()

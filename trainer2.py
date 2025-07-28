@@ -39,15 +39,15 @@ class Trainer2:
         self.lr_scheduler = None
 
         #for mcunet
-        self.lr_scheduler = CyclicLR(
-            optimizer,
-            base_lr=1e-4,      # Minimum LR
-            max_lr=1e-3,       # Maximum LR
-            step_size_up=500, # Gradual increase for 2000 iterations
-            step_size_down=500, # Gradual decrease for 2000 iterations
-            mode='triangular', # Linear up and down
-            cycle_momentum=False 
-        ) 
+        # self.lr_scheduler = CyclicLR(
+        #     optimizer,
+        #     base_lr=1e-4,      # Minimum LR
+        #     max_lr=1e-3,       # Maximum LR
+        #     step_size_up=500, # Gradual increase for 2000 iterations
+        #     step_size_down=500, # Gradual decrease for 2000 iterations
+        #     mode='triangular', # Linear up and down
+        #     cycle_momentum=False 
+        # ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
         #total_steps = 222 * (660 // 2)
@@ -85,14 +85,14 @@ class Trainer2:
         else:
             from tqdm import tqdm, trange
 
-        progressbar = trange(self.epochs, desc='Progress')
+        #progressbar = trange(self.epochs, desc='Progress')
         
         
         #ここでearlystoppingの打ち切り回数設定
         early_stopping = EarlyStopping(patience = 50,verbose = True)
         
         try:
-            for i in progressbar:
+            for i in range(self.epochs):
                 """Epoch counter"""
                 self.epoch += 1  # epoch counter
 
@@ -130,7 +130,8 @@ class Trainer2:
                     self.lr_scheduler.step()
 
                 else:
-                    print("Unknown scheduler. No specific action taken.")
+                    1
+                    #print("Unknown scheduler. No specific action taken.")
                     
                     
                 # """Learning rate scheduler block"""
@@ -141,22 +142,22 @@ class Trainer2:
                 #         self.lr_scheduler.step(self.epoch+1)  # StepLR/Cosine
                         
                         
-                print('val_losses',self.validation_loss[i])
+                #print('val_losses',self.validation_loss[i])
                 ## for ensembleinspiredloss
-                print(self.criterion.get_loss_breakdown())
+                #print(self.criterion.get_loss_breakdown())
                 
 
-                # Logging
-                self.logger.info(f'Epoch: {i + 1}')
-                self.logger.info(f'Training Loss: {self.training_loss[-1]}')
-                self.logger.info(f'Validation Loss: {self.validation_loss[-1]}')
-                self.logger.info(f'Learning Rate: {self.learning_rate[-1]}')
+                # # Logging
+                # self.logger.info(f'Epoch: {i + 1}')
+                # self.logger.info(f'Training Loss: {self.training_loss[-1]}')
+                # self.logger.info(f'Validation Loss: {self.validation_loss[-1]}')
+                # self.logger.info(f'Learning Rate: {self.learning_rate[-1]}')
 
                 early_stopping(self.validation_loss[i],self.model)
         
                 if early_stopping.early_stop:
-                    print(f"early stopping epoch:",i)
-                    self.logger.info(f"Early stopping epoch: {i}")
+                    # print(f"early stopping epoch:",i)
+                    # self.logger.info(f"Early stopping epoch: {i}")
                     
                     # self.model.load_state_dict(torch.load('checkpoint.pt'))
                     # print("Loaded best model weights from early stopping checkpoint")   
@@ -202,11 +203,11 @@ class Trainer2:
         #print("start train model!")
         self.model.train()  # train mode
         train_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
-                          leave=False)
+        #batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
+        #                  leave=False)
         
         
-        for i, (x, y) in batch_iter:
+        for i, (x, y) in enumerate(self.training_DataLoader):
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
             
             # print(f'Train Input size: {input.size()}')
@@ -220,7 +221,7 @@ class Trainer2:
             loss.backward()  # one backward pass
             self.optimizer.step()  # update the parameters
 
-            batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
+            #batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
         ##recently added by eric, getting hook results to visualize masks
         #sp_cnt= 0
@@ -248,7 +249,7 @@ class Trainer2:
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
 
-        batch_iter.close()
+        #batch_iter.close()
         
 
 
@@ -261,10 +262,10 @@ class Trainer2:
 
         self.model.eval()  # evaluation mode
         valid_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
-                          leave=False)
+        #batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
+        #                  leave=False)
 
-        for i, (x, y) in batch_iter:
+        for i, (x, y) in enumerate(self.validation_DataLoader):
             input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
 
             # print(f'Valid Input size: {input.size()}')
@@ -276,7 +277,7 @@ class Trainer2:
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
 
-                batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
+                #batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
                 
                 
             #     ###custom feature map analyzing eric
@@ -307,4 +308,4 @@ class Trainer2:
                 #self.all_max_activations.append(max_activation_list)
 
         self.validation_loss.append(np.mean(valid_losses))
-        batch_iter.close()
+        #batch_iter.close()
