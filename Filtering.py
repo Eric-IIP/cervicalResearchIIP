@@ -371,6 +371,9 @@ def single_image(img, image_type, nml_on=True):
     elif image_type == InputFeature.RIC_:
         f_img = RFilter.richardson_lucy(img)
 
+    elif image_type == InputFeature.CLA_:
+        f_img = RFilter.clahe(img)
+
     else:
         print("image_type is wrong!")
         return

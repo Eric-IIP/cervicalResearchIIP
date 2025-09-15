@@ -1246,6 +1246,15 @@ def custom_standard_deviation(img):
         for x in width:
             overall_value.append(img[y][x])
     print()
+
+def clahe(img):
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # if img.dtype != np.uint8:
+    #     img = (img * 255).astype(np.uint8)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    cl1 = clahe.apply(img)
+    
+    return cl1
             
             
 
