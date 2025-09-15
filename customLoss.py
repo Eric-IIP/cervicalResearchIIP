@@ -112,8 +112,8 @@ class EnsembleInspiredLoss(nn.Module):
         # Loss component weights
         self.distance_weight = 0.5
         self.connectivity_weight = 0.5
-        self.area_consistency_weight = 0.5
-        self.base_ce_weight = 1.0
+        #self.area_consistency_weight = 0.5
+        self.base_ce_weight =  1.0
         
         # Base loss
         self.ce_loss = nn.CrossEntropyLoss()
