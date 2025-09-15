@@ -161,7 +161,8 @@ class InputFeature(Enum):
     RIC_ = 'RIC_'
 
 
-
+    # 2025.09.15 added filter
+    CLA_ = 'CLA_'
 
     
     
