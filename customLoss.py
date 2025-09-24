@@ -321,3 +321,47 @@ class EnsembleInspiredLoss(nn.Module):
         if hasattr(self, 'loss_components'):
             return self.loss_components
         return {}
+    
+    
+class ConfusionPenaltyLoss(nn.Module):
+    def __init__(self, num_classes=10, penalty_matrix=None, reduction="mean"):
+        super().__init__()
+        self.num_classes = num_classes
+        self.reduction = reduction
+
+        if penalty_matrix is None:
+            # Default: all penalties = 1.0
+            penalty_matrix = torch.ones(num_classes, num_classes)
+        
+        # Make sure diagonal = 1 (no penalty for correct prediction)
+        penalty_matrix.fill_diagonal_(1.0)
+
+        self.register_buffer("penalty_matrix", penalty_matrix)
+
+    def forward(self, logits, targets):
+        """
+        logits: [B, C, H, W] (raw outputs from network)
+        targets: [B, H, W] (ground truth labels, long dtype)
+        """
+        B, C, H, W = logits.shape
+        logits = logits.permute(0, 2, 3, 1).reshape(-1, C)   # [N, C]
+        targets = targets.view(-1)                           # [N]
+
+        # Cross entropy per-pixel without reduction
+        ce = F.cross_entropy(logits, targets, reduction="none")  # [N]
+
+        # Get predicted class
+        pred = logits.argmax(dim=1)  # [N]
+
+        # Lookup penalty per pixel from matrix
+        penalties = self.penalty_matrix[targets, pred]  # [N]
+
+        # Apply penalty
+        loss = ce * penalties
+
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        else:
+            return loss.view(B, H, W)
