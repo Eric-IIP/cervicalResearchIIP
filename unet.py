@@ -1,13 +1,58 @@
 from torch import nn
 import torch
 import numpy as np
-
+import torch.nn.functional as F
 from svimg import save_image_unique
 from svimg import tensor_to_image
 
 from foveation import FoveatedConv2d
 from foveation import FastFoveatedConv2d
 from foveation import UltraFastFoveatedConv2d
+
+
+class AddCoords(nn.Module):
+    """Adds coordinate channels to the input tensor."""
+    def __init__(self, with_r=False):
+        super(AddCoords, self).__init__()
+        self.with_r = with_r
+
+    def forward(self, x):
+        b, _, h, w = x.size()
+
+        # Create normalized coordinate grid
+        xx_channel = torch.linspace(-1, 1, w, device=x.device).repeat(h, 1).unsqueeze(0).unsqueeze(0)
+        
+        #normal y sampling
+        yy_channel = torch.linspace(-1, 1, h, device=x.device).unsqueeze(1).repeat(1, w).unsqueeze(0).unsqueeze(0)
+        yy_channel = yy_channel.expand(b, -1, -1, -1) * 3.0  # amplify y vertical cue (3x) (to fix vertical bleeding)
+
+
+        xx_channel = xx_channel.expand(b, -1, -1, -1)
+        yy_channel = yy_channel.expand(b, -1, -1, -1)
+
+        coords = [x, xx_channel, yy_channel]
+
+        if self.with_r:  # optional radial channel
+            rr = torch.sqrt(xx_channel ** 2 + yy_channel ** 2)
+            rr = rr.expand(b, -1, -1, -1)
+            coords.append(rr)
+
+        x = torch.cat(coords, dim=1)  # concatenate with input
+        return x
+
+
+class CoordConv(nn.Module):
+    """CoordConv layer: adds coords then applies Conv2d."""
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, with_r=False):
+        super(CoordConv, self).__init__()
+        self.addcoords = AddCoords(with_r=with_r)
+        self.conv = nn.Conv2d(in_channels + 2 + (1 if with_r else 0), out_channels,
+                              kernel_size=kernel_size, stride=stride, padding=padding)
+
+    def forward(self, x):
+        x = self.addcoords(x)
+        x = self.conv(x)
+        return x
 
 
 @torch.jit.script
@@ -310,7 +355,12 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion =  CoordConv(in_channels, out_channels = 3, kernel_size=3, padding="same")
+        #self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion4 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        self.fusion5 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         
         # self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         
@@ -492,8 +542,15 @@ class UNet(nn.Module):
         # output_tensor = torch.cat(split_tensors, dim = 1)
         # x = output_tensor
         
-        x = self.fusion(x)
+        # x = F.relu(self.fusion(x))
+        # x = F.relu(self.fusion2(x))
+        # x = F.relu(self.fusion3(x))
+        # x = F.relu(self.fusion4(x))
+        # x = self.fusion5(x)
         
+        x = self.fusion(x)
+        x = self.fusion2(x)
+        x = self.fusion3(x)
         
         #x1 = self.fusion(x) 
         #x2 = self.foveation(x)
