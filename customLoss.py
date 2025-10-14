@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+
+## dice loss
 class DiceLoss(nn.Module):
     def __init__(self, smooth=1.0):
         super(DiceLoss, self).__init__()
@@ -28,6 +30,7 @@ class DiceLoss(nn.Module):
 
         return dice_loss
 
+# custom loss function combining Dice and CE
 class DiceCELoss(nn.Module):
     def __init__(self, dice_weight=1.0, ce_weight=1.0):
         super(DiceCELoss, self).__init__()
@@ -98,7 +101,9 @@ class ExponentialLogCE_DiceLoss(nn.Module):
         expDiceCEloss= exp_log_ce + exp_log_dice
         
         return expDiceCEloss
-        
+
+## Custom loss inspired by ensemble criteria
+# based on distance between centroids, connectivity, area consistency and missing whole class penalty        
 class EnsembleInspiredLoss(nn.Module):
     def __init__(self, dst_threshold=2.0, upp_dst_threshold=8.0, 
                  area_ratio_threshold=200, image_size=256):
@@ -297,9 +302,8 @@ class EnsembleInspiredLoss(nn.Module):
         
         # Combine all components
         total_loss = (
-            self.base_ce_weight * ce_loss +
-            self.distance_weight * distance_loss +
-            self.connectivity_weight * connectivity_loss #+
+            #self.base_ce_weight * ce_loss +
+            distance_loss + connectivity_loss #+
             #self.area_consistency_weight * area_loss +
             #2.0 * missing_loss  # Heavy weight for missing classes
         )
@@ -322,16 +326,44 @@ class EnsembleInspiredLoss(nn.Module):
             return self.loss_components
         return {}
     
-    
+## Custom loss for class confusion with penalty matrix
 class ConfusionPenaltyLoss(nn.Module):
-    def __init__(self, num_classes=10, penalty_matrix=None, reduction="mean"):
+    def __init__(self, num_classes=11, penalty_matrix=None, reduction="mean"):
         super().__init__()
         self.num_classes = num_classes
         self.reduction = reduction
 
+
+        # penalty_matrix = torch.tensor([
+        # [1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],  # class 0 BG
+        # [1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 1
+        # [1.5, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0],  # class 2
+        # [1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 3
+        # [1.5, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0],  # class 4
+        # [1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 5
+        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0],  # class 6
+        # [1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5],  # class 7
+        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0],  # class 8
+        # [1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5],  # class 9
+        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0],  # class 10
+        # ])
+        
         if penalty_matrix is None:
             # Default: all penalties = 1.0
-            penalty_matrix = torch.ones(num_classes, num_classes)
+            ## all one init
+            #penalty_matrix = torch.ones(num_classes, num_classes)
+            
+            ## random init
+            #penalty_matrix = torch.rand(num_classes, num_classes)
+            
+            ## random but normal/gaussian init
+            penalty_matrix = torch.randn(num_classes, num_classes)
+            
+            ## xavier init uniform
+            #penalty_matrix = torch.empty(num_classes, num_classes)
+            #nn.init.xavier_uniform_(penalty_matrix)
+            ## kaiming normal init
+            #nn.init.kaiming_normal_(penalty_matrix, nonlinearity='relu')
         
         # Make sure diagonal = 1 (no penalty for correct prediction)
         penalty_matrix.fill_diagonal_(1.0)
@@ -357,7 +389,7 @@ class ConfusionPenaltyLoss(nn.Module):
         penalties = self.penalty_matrix[targets, pred]  # [N]
 
         # Apply penalty
-        loss = ce * penalties
+        loss = penalties
 
         if self.reduction == "mean":
             return loss.mean()
@@ -365,3 +397,221 @@ class ConfusionPenaltyLoss(nn.Module):
             return loss.sum()
         else:
             return loss.view(B, H, W)
+        
+
+class FocalLoss(nn.Module):
+    """
+    Focal Loss for multi-class segmentation.
+    It addresses class imbalance by down-weighting easy examples, 
+    focusing the training on hard-to-classify pixels.
+    """
+    def __init__(self, alpha=None, gamma=2.0, reduction='mean'):
+        """
+        Args:
+            alpha (torch.Tensor, optional): A manual rescaling weight given to each class.
+                                            If given, has to be a Tensor of size C.
+                                            Defaults to None.
+            gamma (float, optional): The focusing parameter. Higher values give more 
+                                     focus to hard examples. Defaults to 2.0.
+            reduction (str, optional): 'mean', 'sum', or 'none'. Defaults to 'mean'.
+        """
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        """
+        Args:
+            inputs (torch.Tensor): Model output of shape [B, C, H, W].
+            targets (torch.Tensor): Ground truth of shape [B, H, W].
+        
+        Returns:
+            torch.Tensor: The calculated focal loss.
+        """
+        # Calculate the cross-entropy loss without reduction
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
+        
+        # Calculate the probability of the correct class
+        pt = torch.exp(-ce_loss)
+        
+        # Calculate the focal loss
+        focal_loss = ((1 - pt) ** self.gamma) * ce_loss
+        
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        else:
+            return focal_loss
+
+
+def get_boundary_mask(mask, kernel_size=3):
+    """
+    Creates a boundary mask from a segmentation mask.
+    Args:
+        mask (torch.Tensor): The segmentation mask of shape [B, H, W].
+        kernel_size (int): The size of the kernel for dilation.
+    Returns:
+        torch.Tensor: The boundary mask of shape [B, 1, H, W].
+    """
+    # Unsqueeze to add a channel dimension for conv operations
+    mask_one_hot = F.one_hot(mask, num_classes=mask.max() + 1).permute(0, 3, 1, 2).float()
+    
+    # Use max pooling as a simple and effective dilation operation
+    dilated = F.max_pool2d(mask_one_hot, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
+    eroded = 1 - F.max_pool2d(1 - mask_one_hot, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
+
+    boundary = (dilated - eroded).sum(dim=1, keepdim=True)
+    boundary = (boundary > 0).float()
+    return boundary
+
+class BoundaryDiceLoss(nn.Module):
+    """
+    Dice Loss that focuses only on the boundary regions of the segmentation mask.
+    """
+    def __init__(self, smooth=1e-6):
+        super(BoundaryDiceLoss, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, inputs, targets):
+        """
+        Args:
+            inputs (torch.Tensor): Model output logits [B, C, H, W].
+            targets (torch.Tensor): Ground truth labels [B, H, W].
+        """
+        # Get softmax probabilities
+        probs = F.softmax(inputs, dim=1)
+        
+        # Get one-hot encoded target
+        targets_one_hot = F.one_hot(targets, num_classes=inputs.shape[1]).permute(0, 3, 1, 2).float()
+        
+        # Get the boundary mask from the ground truth
+        boundary_mask = get_boundary_mask(targets)
+        
+        # Filter probabilities and targets to only include boundaries
+        probs_boundary = probs * boundary_mask
+        targets_boundary = targets_one_hot * boundary_mask
+        
+        # Flatten
+        probs_boundary = probs_boundary.reshape(probs_boundary.shape[0], -1)
+        targets_boundary = targets_boundary.reshape(targets_boundary.shape[0], -1)
+        
+        # Calculate intersection and union over the boundary
+        intersection = (probs_boundary * targets_boundary).sum()
+        dice_score = (2. * intersection + self.smooth) / (probs_boundary.sum() + targets_boundary.sum() + self.smooth)
+        
+        return 1. - dice_score
+
+# Note: A BoundaryIoULoss would be implemented identically, just with the IoU formula:
+# iou_score = (intersection + self.smooth) / (probs_boundary.sum() + targets_boundary.sum() - intersection + self.smooth)
+
+
+class BoundaryIOU(nn.Module):
+    """
+    Dice Loss that focuses only on the boundary regions of the segmentation mask.
+    """
+    def __init__(self, smooth=1e-6):
+        super(BoundaryIOU, self).__init__()
+        self.smooth = smooth
+
+    def forward(self, inputs, targets):
+        """
+        Args:
+            inputs (torch.Tensor): Model output logits [B, C, H, W].
+            targets (torch.Tensor): Ground truth labels [B, H, W].
+        """
+        # Get softmax probabilities
+        probs = F.softmax(inputs, dim=1)
+        
+        # Get one-hot encoded target
+        targets_one_hot = F.one_hot(targets, num_classes=inputs.shape[1]).permute(0, 3, 1, 2).float()
+        
+        # Get the boundary mask from the ground truth
+        boundary_mask = get_boundary_mask(targets)
+        
+        # Filter probabilities and targets to only include boundaries
+        probs_boundary = probs * boundary_mask
+        targets_boundary = targets_one_hot * boundary_mask
+        
+        # Flatten
+        probs_boundary = probs_boundary.reshape(probs_boundary.shape[0], -1)
+        targets_boundary = targets_boundary.reshape(targets_boundary.shape[0], -1)
+        
+        # Calculate intersection and union over the boundary
+        intersection = (probs_boundary * targets_boundary).sum()
+        iou_score = (intersection + self.smooth) / (probs_boundary.sum() + targets_boundary.sum() - intersection + self.smooth)
+        
+        return 1. - iou_score
+
+class CombinedLoss(nn.Module):
+    """
+    Combines Focal Loss and Boundary Dice Loss with learnable weights.
+    The individual loss functions are created internally.
+    """
+    def __init__(self, focal_gamma=2.0, b_dice_smooth=1e-6):
+        """
+        Args:
+            focal_gamma (float): The gamma parameter for the internal Focal Loss.
+            b_dice_smooth (float): The smooth parameter for the internal Boundary Dice Loss.
+        """
+        super(CombinedLoss, self).__init__()
+        # Instantiate internal loss functions
+        self.boundary_iou_loss = BoundaryIOU(smooth = b_dice_smooth)
+        self.boundary_dice_loss = BoundaryDiceLoss(smooth=b_dice_smooth)
+        self.focal_loss = FocalLoss(gamma=focal_gamma)
+        self.confusion_penalty_loss = ConfusionPenaltyLoss()
+        self.ensemble_inspired_loss = EnsembleInspiredLoss()
+        self.dice_loss = DiceLoss()
+        self.ce = nn.CrossEntropyLoss()        
+        
+        # Learnable parameters (log variances for numerical stability)
+        self.log_vars = nn.Parameter(torch.randn(7))
+
+    def forward(self, inputs, targets):
+        """
+        Args:
+            inputs (torch.Tensor): Model output logits [B, C, H, W].
+            targets (torch.Tensor): Ground truth labels [B, H, W].
+        
+        Returns:
+            torch.Tensor: The final combined, weighted loss.
+        """
+        # --- Calculate Loss Term 1: Boundary IOU Loss ---
+        loss1 = self.boundary_iou_loss(inputs, targets)
+        precision1 = 0.5 * torch.exp(-self.log_vars[0])
+        term1 = precision1 * loss1 + 0.5 * self.log_vars[0]
+        
+        
+        # --- Calculate Loss Term 2: Boundary Dice Loss ---
+        loss2 = self.boundary_dice_loss(inputs, targets)
+        precision2 = 0.5 * torch.exp(-self.log_vars[1])
+        term2 = precision2 * loss2 + 0.5 * self.log_vars[1]
+        
+        
+        # --- Calculate Loss Term 3: Focal Loss ---
+        loss3 = self.focal_loss(inputs, targets)
+        precision3 = 0.5 * torch.exp(-self.log_vars[2])
+        term3 = precision3 * loss3 + 0.5 * self.log_vars[2]
+        
+        # --- Calculate Loss Term 4: Confusion Penalty Loss ---
+        loss4 = self.confusion_penalty_loss(inputs, targets)
+        precision4 = 0.5 * torch.exp(-self.log_vars[3])
+        term4 = precision4 * loss4 + 0.5 * self.log_vars[3]
+        
+        # --- Calculate Loss Term 5: Ensemble inspired custom Loss ---
+        loss5 = self.ensemble_inspired_loss(inputs, targets)
+        precision5 = 0.5 * torch.exp(-self.log_vars[4])
+        term5 = precision5 * loss5 + 0.5 * self.log_vars[4]
+        
+        # --- Calculate Loss Term 6: Dice Loss ---
+        loss6 = self.dice_loss(inputs, targets)
+        precision6 = 0.5 * torch.exp(-self.log_vars[5])
+        term6 = precision6 * loss6 + 0.5 * self.log_vars[5]
+        
+        # --- Calculate Loss Term 7: Cross entropy Loss ---
+        loss7 = self.ce(inputs, targets)
+        precision7 = 0.5 * torch.exp(-self.log_vars[6])
+        term7 = precision7 * loss7 + 0.5 * self.log_vars[6]
+        
+        return term1 + term2 + term3 + term4 + term5 + term6 + term7
