@@ -3,6 +3,7 @@ import cv2
 import torch
 import time
 import logging
+import matplotlib.pyplot as plt
 from svimg import save_image_unique
 from svimg import tensor_to_image
 from torch.optim.lr_scheduler import (
@@ -41,6 +42,14 @@ class Trainer2:
         #for mcunet
         self.lr_scheduler = CyclicLR(
             optimizer,
+            
+            #1e-4 to 1e-3 (0.0001 to 0.001) - Standard range
+            # 1e-4 to 1e-3 (0.0001 to 0.001) - Standard range
+            #3e-4 (0.0003) - Most common default
+            #1e-3 (0.001) - Default in many frameworks but often too high
+            #1e-5 to 1e-4 - For fine-tuning pre-trained models
+            
+            
             base_lr=1e-4,      # Minimum LR
             max_lr=1e-3,       # Maximum LR
             step_size_up=500, # Gradual increase for 2000 iterations
@@ -140,8 +149,10 @@ class Trainer2:
                 #     else:
                 #         self.lr_scheduler.step(self.epoch+1)  # StepLR/Cosine
                         
-                        
+                print('train_losses',self.training_loss[i])        
                 print('val_losses',self.validation_loss[i])
+                print('lr', self.learning_rate[i])
+                
                 ## for ensembleinspiredloss
                 #print(self.criterion.get_loss_breakdown())
                 
@@ -162,8 +173,20 @@ class Trainer2:
                     # print("Loaded best model weights from early stopping checkpoint")   
                     
                     break
-                
-            #feature analyze section eric
+            
+            # training and validation loss plot
+            # analysis on the training is done here            
+            plt.figure(figsize=(7, 5))
+            plt.plot(self.training_loss, label='Training Loss', color='blue')
+            plt.plot(self.validation_loss, label='Validation Loss', color='orange')
+            plt.xlabel('Epoch')
+            plt.ylabel('Loss')
+            plt.title('Training vs Validation Loss')
+            plt.legend()
+            plt.grid(True)
+            plt.show()
+            
+        #feature analyze section eric
             ####    
             # last_epoch_mean_activation = self.all_mean_activations[-1]
             # last_epoch_max_activation = self.all_max_activations[-1]
@@ -179,7 +202,7 @@ class Trainer2:
             #     print(f"Filter {idx}: {max_value.item()}")
             #####
 
-        except Exception as e:
+        except Exception as e:  
             print("An error occurred during training/validation:")
             print(e)
             

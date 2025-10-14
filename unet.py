@@ -11,34 +11,35 @@ from foveation import UltraFastFoveatedConv2d
 
 
 class AddCoords(nn.Module):
-    """Adds coordinate channels to the input tensor."""
-    def __init__(self, with_r=False):
-        super(AddCoords, self).__init__()
+    def __init__(self, with_r=False, learnable_y_amp=True, learnable_x_amp=True):
+        super().__init__()
         self.with_r = with_r
-
+        
+        if learnable_y_amp:
+            # Initialize with your current value, let network optimize it
+            self.y_amplifier = nn.Parameter(torch.tensor(3.0))
+            self.x_amplifier = nn.Parameter(torch.tensor(1.0))
+        else:
+            self.y_amplifier = 1.0
+            self.x_amplifier = 1.0
+    
     def forward(self, x):
         b, _, h, w = x.size()
-
-        # Create normalized coordinate grid
-        xx_channel = torch.linspace(-1, 1, w, device=x.device).repeat(h, 1).unsqueeze(0).unsqueeze(0)
         
-        #normal y sampling
+        xx_channel = torch.linspace(-1, 1, w, device=x.device).repeat(h, 1).unsqueeze(0).unsqueeze(0)
         yy_channel = torch.linspace(-1, 1, h, device=x.device).unsqueeze(1).repeat(1, w).unsqueeze(0).unsqueeze(0)
-        yy_channel = yy_channel.expand(b, -1, -1, -1) * 3.0  # amplify y vertical cue (3x) (to fix vertical bleeding)
-
-
-        xx_channel = xx_channel.expand(b, -1, -1, -1)
-        yy_channel = yy_channel.expand(b, -1, -1, -1)
-
+        
+        # Use learnable amplification
+        yy_channel = yy_channel.expand(b, -1, -1, -1) * self.y_amplifier
+        xx_channel = xx_channel.expand(b, -1, -1, -1) * self.x_amplifier
+        
         coords = [x, xx_channel, yy_channel]
-
-        if self.with_r:  # optional radial channel
-            rr = torch.sqrt(xx_channel ** 2 + yy_channel ** 2)
-            rr = rr.expand(b, -1, -1, -1)
+        
+        if self.with_r:
+            rr = torch.sqrt(xx_channel ** 2 + (yy_channel / self.y_amplifier) ** 2)  # Normalize for radius
             coords.append(rr)
-
-        x = torch.cat(coords, dim=1)  # concatenate with input
-        return x
+        
+        return torch.cat(coords, dim=1)
 
 
 class CoordConv(nn.Module):
@@ -355,12 +356,17 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion =  CoordConv(in_channels, out_channels = 3, kernel_size=3, padding="same")
-        #self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
+        #self.fusion =  CoordConv(in_channels, out_channels = 3, kernel_size=3, padding="same")
+        self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
         self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        
         self.fusion4 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         self.fusion5 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        
+        
+        self.bn1 = nn.BatchNorm2d(3)
+        
         
         # self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
         
@@ -410,7 +416,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 10
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -548,9 +554,11 @@ class UNet(nn.Module):
         # x = F.relu(self.fusion4(x))
         # x = self.fusion5(x)
         
-        x = self.fusion(x)
-        x = self.fusion2(x)
-        x = self.fusion3(x)
+        
+        x1 = self.fusion(x)
+        x2 = self.fusion2(x1)
+        x3 = self.fusion3(x2)
+        # x = F.relu(x)
         
         #x1 = self.fusion(x) 
         #x2 = self.foveation(x)
@@ -578,7 +586,7 @@ class UNet(nn.Module):
         # x13 = self.cn13(x)
         #x7 = x
         
-        #x = torch.cat((x1, x2, x3, x4, x5, x6, x7), dim=1)
+        x = torch.cat((x, x1, x2, x3), dim=1)
                 
         #x = x3
         # Encoder pathway
@@ -589,7 +597,11 @@ class UNet(nn.Module):
         # Decoder pathway
         for i, module in enumerate(self.up_blocks):
             before_pool = encoder_output[-(i + 2)]
-            x = module(before_pool, x)
+            x_multi = module(before_pool, x)
+            self.out_channels = 2
+            x_bin = module(before_pool, x)
+            
+            
 
         x = self.conv_final(x)
         

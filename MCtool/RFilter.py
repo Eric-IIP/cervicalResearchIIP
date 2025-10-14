@@ -837,18 +837,19 @@ def prewitt(image, variation):
 
 
     if variation == 0:
-        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x)
-        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y)
+        prewitt_x = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_x)
+        prewitt_y = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_y)
+
     elif variation == 1:
-        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x1)
-        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y1)
+        prewitt_x = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_x1)
+        prewitt_y = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_y1)
     elif variation == 2:
-        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x2)
-        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y2)
+        prewitt_x = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_x2)
+        prewitt_y = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_y2)
 
     elif variation == 3:
-        prewitt_x = cv2.filter2D(image, -1, prewitt_kernel_x3)
-        prewitt_y = cv2.filter2D(image, -1, prewitt_kernel_y3)
+        prewitt_x = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_x3)
+        prewitt_y = cv2.filter2D(image, cv2.CV_32F, prewitt_kernel_y3)
 
     prewitt_combined = cv2.magnitude(prewitt_x, prewitt_y)
 
@@ -1215,6 +1216,7 @@ def homomorphic(img):
 # the filter unblurs the original img
 # blurred in purpose then applied richardson
 def richardson_lucy(img):
+    img = img.astype(np.float32)
     blurred_img = cv2.GaussianBlur(img, (5,5), 1.0)
     psf = np.ones((5, 5)) / 25  # Example PSF (5x5 averaging filter)
 
