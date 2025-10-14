@@ -24,8 +24,8 @@ class Trainer2:
                  device: torch.device,
                  criterion: torch.nn.Module,
                  optimizer: torch.optim.Optimizer,
-                 training_DataLoader: torch.utils.data.Dataset,
-                 validation_DataLoader: torch.utils.data.Dataset = None,
+                 training_DataLoaders,
+                 validation_DataLoaders,
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  epochs: int = 100,
                  epoch: int = 0,
@@ -69,8 +69,8 @@ class Trainer2:
         #     anneal_strategy='cos',  # Cosine decay
         #     cycle_momentum=False  # Keep False for AdamW
         # )
-        self.training_DataLoader = training_DataLoader
-        self.validation_DataLoader = validation_DataLoader
+        self.training_DataLoaders = training_DataLoaders
+        self.validation_DataLoaders = validation_DataLoaders
         self.device = device
         self.epochs = epochs
         self.epoch = epoch
@@ -225,48 +225,34 @@ class Trainer2:
         #print("start train model!")
         self.model.train()  # train mode
         train_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
-                          leave=False)
+        # batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
+        #                   leave=False)
+        
+        batch_iter = tqdm(zip(*self.training_DataLoaders),total=len(self.training_DataLoaders[0]),desc='Training',leave=False)
         
         
-        for i, (x, y) in batch_iter:
-            input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+        for batch_idx, batch_list in enumerate(batch_iter):
+            input = batch_list[0][0].to(self.device)
+            targets = [y.to(self.device) for _, y in batch_list]
+
+            #input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
             
             # print(f'Train Input size: {input.size()}')
             # print(f'Train Target size: {target.size()}')
             
             self.optimizer.zero_grad()  # zerograd the parameters
-            out = self.model(input)  # one forward pass
-            loss = self.criterion(out, target)  # calculate loss
+            outs = self.model(input)  # one forward pass
+            loss = [self.criterion(o, t) for o, t in zip(outs, targets)]
+            #loss = self.criterion(outs, targets)  # calculate loss
+            loss = torch.mean(torch.stack(loss)) #mean loss of multiple decoders
+            
             loss_value = loss.item()
             train_losses.append(loss_value)
             loss.backward()  # one backward pass
             self.optimizer.step()  # update the parameters
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
-        
-        ##recently added by eric, getting hook results to visualize masks
-        #sp_cnt= 0
-        #if sp_cnt == 0:
-            
-            #uses up all cuda memory in one forward pass
-            # #taking last upblock result in one epoch
-            # decoder_outputs = self.model.decoder_output
-            # iz = 0
-            # feat = decoder_outputs[len(decoder_outputs)-1]
-            # feat = feat[len(feat)-1]  # taking the last sample in the batch
-            # mean_feat = feat.mean(0).detach().cpu().numpy()
-            # resized = cv2.resize(mean_feat, (256, 256)) 
-            # path_name = f"/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/hook_up_result{str(iz)}.png"
-            # cv2.imwrite(path_name, resized)
-            
-            #taking last seg mask result in one epoch
-            # seg_ten = self.model.pre_x.argmax(dim = 1)
-            # img_np = tensor_to_image(seg_ten)
-            # save_image_unique("/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/presegmask.png", img_np)
-        #    sp_cnt = 1
-        ##
-
+    
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
@@ -284,50 +270,26 @@ class Trainer2:
 
         self.model.eval()  # evaluation mode
         valid_losses = []  # accumulate the losses here
-        batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
-                          leave=False)
-
-        for i, (x, y) in batch_iter:
-            input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+        batch_iter = tqdm(zip(*self.validation_DataLoaders),total=len(self.validation_DataLoaders[0]),desc='Validation',leave=False)
+        
+        
+        for batch_idx, batch_list in enumerate(batch_iter):
+            input = batch_list[0][0].to(self.device)
+            targets = [y.to(self.device) for _, y in batch_list]
 
             # print(f'Valid Input size: {input.size()}')
             # print(f'Valid Target size: {target.size()}')
             
             with torch.no_grad():
-                out = self.model(input)
-                loss = self.criterion(out, target)
+                outs = self.model(input)
+                loss = [self.criterion(o, t) for o, t in zip(outs, targets)]
+                loss = torch.mean(torch.stack(loss)) #mean loss of multiple decoders
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
 
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
                 
-                
-            #     ###custom feature map analyzing eric
-            #     first_block_activation = self.model.activations[self.model.down_blocks[0]]
-
-            #     abs_max_activation = torch.abs(torch.amax(first_block_activation, dim=[2, 3]))
-        
-            #     # Sort activations and get the indices in descending order
-            #     sorted_activation_values, sorted_activation_indices = torch.sort(abs_max_activation, dim=0, descending=True)
-            #     flattened_activations = sorted_activation_values.view(sorted_activation_values.size(0), sorted_activation_values.size(1), -1)
-
-            #    # Calculate the mean activation across the spatial dimensions (height and width)
-            #     mean_activation_list = flattened_activations.mean(dim=2)  # Mean across spatial dimensions
-
-            #     # Calculate the max activation across the spatial dimensions (height and width)
-            #     max_activation_list = flattened_activations.max(dim=2)[0]  # Get the max value across spatial dimensions
-
-                # Print the mean and max activation values for each filter
-                #print("Mean activation values for each filter:")
-                # for idx, mean_value in enumerate(mean_activation_list[0]):  # Iterate over each filter
-                #     print(f"Filter {idx}: {mean_value.item()}")
-
-                # print("\nMax activation values for each filter:")
-                # for idx, max_value in enumerate(max_activation_list[0]):  # Iterate over each filter
-                #     print(f"Filter {idx}: {max_value.item()}")
-                    
-                #self.all_mean_activations.append(mean_activation_list)
-                #self.all_max_activations.append(max_activation_list)
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()
+    

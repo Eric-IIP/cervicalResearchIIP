@@ -351,74 +351,10 @@ class UNet(nn.Module):
                  ):
         super().__init__()
     
-
-        #commented the fusion part for original UNet 
         
         print("in constructor inchannel: " + str(in_channels))
         
-        #self.fusion =  CoordConv(in_channels, out_channels = 3, kernel_size=3, padding="same")
-        self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        
-        self.fusion4 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion5 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        
-        
-        self.bn1 = nn.BatchNorm2d(3)
-        
-        
-        # self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
-        
-        # self.foveation = UltraFastFoveatedConv2d(in_channels = 108, out_channels = 3)
-        
-        # self.foveation2 = UltraFastFoveatedConv2d(in_channels = 3, out_channels = 3)
-        
-        
-        # Version single 1x1
-        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
-        #print(self.fusion.weight)
-        #Version multiple 12.1
-        #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding='same')
-        # self.cn2 = nn.Conv2d(in_channels, 1, 3, padding='same')
-        # self.cn3 = nn.Conv2d(in_channels, 1, 3, dilation = 2, padding='same')
-        # self.cn4 = nn.Conv2d(in_channels, 1, 5, padding='same')
-        # self.cn5 = nn.Conv2d(in_channels, 1, 5, dilation = 2, padding='same')
-        
-        
-        #Version 3 increase the convolutions again
-        # default common config conv
-        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same")
-        
-        #self.cn1 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 1, padding="same")
-        #self.cn2 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 5, padding="same")
-        
-        #self.cn3 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 2)
-        # self.cn4 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 3)
-        # self.cn5 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 3, padding="same", dilation = 4)
-        
-        
-        
-        # self.cn7 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 2)
-        # self.cn8 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 3)
-        # self.cn9 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 5, padding="same", dilation = 4)
-        
-        #self.cn3 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 7, padding="same")
-        #self.cn4 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 9, padding="same")
-        #self.cn5 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 11, padding="same")
-        #self.cn6 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 13, padding="same")
-        # self.cn11 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 2)
-        # self.cn12 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 3)
-        # self.cn13 = nn.Conv2d(in_channels, out_channels = 1, kernel_size = 7, padding="same", dilation = 4)
-        
-        
-        
-        
-        
-        
-        self.in_channels = 10
-        ##uncommented this part for original UNet
-        #self.in_channels = in_channels
+        self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
         
         self.out_channels = out_channels
@@ -436,17 +372,13 @@ class UNet(nn.Module):
         self.activations = {}
         
         
-        #recently added by eric decoder hook for visualization
+        
         self.decoder_output = []
         
         
         def hook_fn(module, input, output):
         # Capture the output just before pooling (the second element in the tuple)
             self.decoder_output.append(output)
-        
-        # def hook_fn(module, input, output):
-        # # Capture the output just before pooling (the second element in the tuple)
-        #     self.activations[module] = output[1].detach()
         
         
         # create encoder path
@@ -464,12 +396,8 @@ class UNet(nn.Module):
                                    dim=self.dim)
 
             self.down_blocks.append(down_block)
-            #custom added feature analyze
-            # Register the hook for each DownBlock
-            # for idx, down_block in enumerate(self.down_blocks):
-            #     down_block.register_forward_hook(hook_fn)
-
-
+        
+        
         # create decoder path (requires only n_blocks-1 blocks)
         for i in range(n_blocks - 1):
             num_filters_in = num_filters_out
@@ -523,100 +451,23 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.tensor):
         encoder_output = []
-        
-        
-        
-        # splitting the input tensor with 108 channels into 4 tensors and applying the 
-        # nn conv2d operation then concatting the output tensor
-        # result
-        
-        # split_tensors = torch.split(x, 27, dim=1)
-        #print(torch.unique(x))
-        #conv = nn.Conv2d(27, 1, 1, padding = 'same').cuda()
-        #conv_tensors = [self.fusion(tensor) for tensor in split_tensors]
-        #output_tensor = torch.cat(conv_tensors, dim=1)
-        #print(output_tensor.shape)
-        #x = output_tensor
-        #print(torch.unique(x))
-        #print(x.shape)
-        
-        # same conv2d trying 4 times result is just same
-        # split_tensors = []
-        # for i in range(4):
-        #     tensor = self.fusion(x)
-        #     split_tensors.append(tensor)
-        # output_tensor = torch.cat(split_tensors, dim = 1)
-        # x = output_tensor
-        
-        # x = F.relu(self.fusion(x))
-        # x = F.relu(self.fusion2(x))
-        # x = F.relu(self.fusion3(x))
-        # x = F.relu(self.fusion4(x))
-        # x = self.fusion5(x)
-        
-        
-        x1 = self.fusion(x)
-        x2 = self.fusion2(x1)
-        x3 = self.fusion3(x2)
-        # x = F.relu(x)
-        
-        #x1 = self.fusion(x) 
-        #x2 = self.foveation(x)
-        #x3 = self.foveation2(x1)
-        #x4 = self.fusion2(x2)
-        
-        #x3 = self.foveation(x1)
-        #x = torch.cat((x2, x4), dim=1)
-        
-        # x2 = self.cn2(x)
-        # x3 = self.cn3(x)
-        # x4 = self.cn4(x)
-        # x5 = self.cn5(x)
-        # x6 = self.cn6(x)
-        #x3 = self.cn3(x)
-        # x4 = self.cn4(x)
-        # x5 = self.cn5(x)
-        # x6 = self.cn6(x)
-        # x7 = self.cn7(x)
-        # x8 = self.cn8(x)
-        # x9 = self.cn9(x)
-        # x10 = self.cn10(x)
-        # x11 = self.cn11(x)
-        # x12 = self.cn12(x)
-        # x13 = self.cn13(x)
-        #x7 = x
-        
-        x = torch.cat((x, x1, x2, x3), dim=1)
                 
-        #x = x3
         # Encoder pathway
         for module in self.down_blocks:
             x, before_pooling = module(x)
             encoder_output.append(before_pooling)
-
+            
+        x = []
         # Decoder pathway
         for i, module in enumerate(self.up_blocks):
             before_pool = encoder_output[-(i + 2)]
-            x_multi = module(before_pool, x)
-            self.out_channels = 2
-            x_bin = module(before_pool, x)
+            for i in range(10):
+                x_i = module(before_pool, x)
+                x.append(x_i)
             
-            
-
-        x = self.conv_final(x)
+        for i, x_i in x:    
+            x[i] = self.conv_final(x_i)
         
-        # ## logic added by eric to illustrate segmask
-        # sp_cnt = 0
-        # if sp_cnt==0:
-        #     self.pre_x = x
-            
-        #     seg_ten = x.argmax(dim = 1)
-        #     img_np = tensor_to_image(seg_ten)
-        #     save_image_unique("/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/postFinalConvSegMaskOneforward/presegmask.png", img_np)
-            
-        #     sp_cnt = 1
-            
-        ##
         return x
 
     def __repr__(self):
