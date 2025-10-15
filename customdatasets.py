@@ -30,8 +30,6 @@ class SegmentationDataSet0(data.Dataset):
         x = self.inputs[index]
         y = self.targets[index]
 
-        # Load input and target
-        #x, y = imread(str(input_ID)), imread(str(target_ID))
 
         # Preprocessing
         if self.transform is not None:

@@ -396,6 +396,7 @@ class UNet(nn.Module):
                                    dim=self.dim)
 
             self.down_blocks.append(down_block)
+            
         
         
         # create decoder path (requires only n_blocks-1 blocks)
@@ -457,20 +458,81 @@ class UNet(nn.Module):
             x, before_pooling = module(x)
             encoder_output.append(before_pooling)
             
-        x = []
+        x_list = []
+        prev_x = x
         # Decoder pathway
         for i, module in enumerate(self.up_blocks):
             before_pool = encoder_output[-(i + 2)]
-            for i in range(10):
-                x_i = module(before_pool, x)
-                x.append(x_i)
-            
-        for i, x_i in x:    
-            x[i] = self.conv_final(x_i)
-        
-        return x
+            x = module(before_pool, x)
+
+        x = self.conv_final(x)
 
     def __repr__(self):
         attributes = {attr_key: self.__dict__[attr_key] for attr_key in self.__dict__.keys() if '_' not in attr_key[0] and 'training' not in attr_key}
         d = {self.__class__.__name__: attributes}
         return f'{d}'
+
+
+class MultiDecoderUNet(nn.Module):
+    """
+    Multi-decoder UNet version using your existing UNet backbone.
+    Each decoder has its own UpBlocks and final conv layer.
+    """
+    def __init__(self, base_unet: UNet, num_decoders: int = 3):
+        super().__init__()
+
+        # Share encoder from existing UNet
+        self.encoder_blocks = base_unet.down_blocks
+        self.num_decoders = num_decoders
+        self.dim = base_unet.dim
+        self.activation = base_unet.activation
+        self.normalization = base_unet.normalization
+        self.conv_mode = base_unet.conv_mode
+        self.up_mode = base_unet.up_mode
+
+        # Create multiple decoders
+        self.decoders = nn.ModuleList()
+        self.final_convs = nn.ModuleList()
+
+        for _ in range(num_decoders):
+            decoder_blocks = nn.ModuleList()
+            num_filters_out = base_unet.start_filters * (2 ** (base_unet.n_blocks - 1))
+            for _ in range(base_unet.n_blocks - 1):
+                num_filters_in = num_filters_out
+                num_filters_out = num_filters_in // 2
+                up_block = UpBlock(
+                    in_channels=num_filters_in,
+                    out_channels=num_filters_out,
+                    activation=self.activation,
+                    normalization=self.normalization,
+                    conv_mode=self.conv_mode,
+                    dim=self.dim,
+                    up_mode=self.up_mode
+                )
+                decoder_blocks.append(up_block)
+
+            self.decoders.append(decoder_blocks)
+            self.final_convs.append(
+                get_conv_layer(num_filters_out, base_unet.out_channels, kernel_size=1, stride=1, padding=0,
+                               bias=True, dim=self.dim)
+            )
+
+    def forward(self, x):
+        # Encode once
+        encoder_outputs = []
+        for module in self.encoder_blocks:
+            x, before_pool = module(x)
+            encoder_outputs.append(before_pool)
+
+        decoder_results = []
+        # Decode separately for each head
+        for dec_idx, decoder_blocks in enumerate(self.decoders):
+            y = x
+            for block_idx, module in enumerate(decoder_blocks):
+                skip = encoder_outputs[-(block_idx + 2)]
+                y = module(skip, y)
+            out = self.final_convs[dec_idx](y)
+            decoder_results.append(out)
+
+        # Return as list or tensor
+        return decoder_results  # list of [B, C, H, W] outputs per decoder

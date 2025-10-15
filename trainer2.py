@@ -109,7 +109,7 @@ class Trainer2:
                 self._train()
 
                 """Validation block"""
-                if self.validation_DataLoader is not None:
+                if self.validation_DataLoaders is not None:
                     self._validate()
                 
                 if isinstance(self.lr_scheduler, StepLR):
@@ -232,8 +232,12 @@ class Trainer2:
         
         
         for batch_idx, batch_list in enumerate(batch_iter):
+            # input is same for evert decoder so just take the first
             input = batch_list[0][0].to(self.device)
+            
+            
             targets = [y.to(self.device) for _, y in batch_list]
+
 
             #input, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
             
