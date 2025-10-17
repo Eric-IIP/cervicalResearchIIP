@@ -615,3 +615,20 @@ class CombinedLoss(nn.Module):
         term7 = precision7 * loss7 + 0.5 * self.log_vars[6]
         
         return term1 + term2 + term3 + term4 + term5 + term6 + term7
+
+from torchvision.ops import sigmoid_focal_loss
+class MultiClassFocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0, reduction="mean"):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        num_classes = inputs.shape[1]
+        # one-hot encode
+        targets_onehot = F.one_hot(targets, num_classes=num_classes).permute(0, 3, 1, 2).float()
+        return sigmoid_focal_loss(
+            inputs, targets_onehot,
+            alpha=self.alpha, gamma=self.gamma, reduction=self.reduction
+        )

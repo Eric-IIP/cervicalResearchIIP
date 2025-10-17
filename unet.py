@@ -416,6 +416,7 @@ class UNet(nn.Module):
         
         
         
+        
         self.in_channels = 10
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
@@ -597,10 +598,7 @@ class UNet(nn.Module):
         # Decoder pathway
         for i, module in enumerate(self.up_blocks):
             before_pool = encoder_output[-(i + 2)]
-            x_multi = module(before_pool, x)
-            self.out_channels = 2
-            x_bin = module(before_pool, x)
-            
+            x = module(before_pool, x)
             
 
         x = self.conv_final(x)
