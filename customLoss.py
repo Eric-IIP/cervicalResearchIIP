@@ -332,42 +332,11 @@ class ConfusionPenaltyLoss(nn.Module):
         super().__init__()
         self.num_classes = num_classes
         self.reduction = reduction
-
-
-        # penalty_matrix = torch.tensor([
-        # [1.0, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],  # class 0 BG
-        # [1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 1
-        # [1.5, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0],  # class 2
-        # [1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 3
-        # [1.5, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0],  # class 4
-        # [1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0, 1.5],  # class 5
-        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5, 5.0],  # class 6
-        # [1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0, 1.5],  # class 7
-        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5, 5.0],  # class 8
-        # [1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0, 1.5],  # class 9
-        # [1.5, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 5.0, 1.5, 1.0],  # class 10
-        # ])
         
         if penalty_matrix is None:
-            # Default: all penalties = 1.0
-            ## all one init
-            #penalty_matrix = torch.ones(num_classes, num_classes)
-            
-            ## random init
-            #penalty_matrix = torch.rand(num_classes, num_classes)
-            
-            ## random but normal/gaussian init
             penalty_matrix = torch.randn(num_classes, num_classes)
-            
-            ## xavier init uniform
-            #penalty_matrix = torch.empty(num_classes, num_classes)
-            #nn.init.xavier_uniform_(penalty_matrix)
-            ## kaiming normal init
-            #nn.init.kaiming_normal_(penalty_matrix, nonlinearity='relu')
         
-        # Make sure diagonal = 1 (no penalty for correct prediction)
-        penalty_matrix.fill_diagonal_(1.0)
-
+        penalty_matrix.fill_diagonal_(1.0) # Correct predictions have a weight of 1
         self.register_buffer("penalty_matrix", penalty_matrix)
 
     def forward(self, logits, targets):
@@ -376,20 +345,20 @@ class ConfusionPenaltyLoss(nn.Module):
         targets: [B, H, W] (ground truth labels, long dtype)
         """
         B, C, H, W = logits.shape
-        logits = logits.permute(0, 2, 3, 1).reshape(-1, C)   # [N, C]
-        targets = targets.view(-1)                           # [N]
+        logits_flat = logits.permute(0, 2, 3, 1).reshape(-1, C)   # [N, C]
+        targets_flat = targets.view(-1)                           # [N]
+        
+        ce_loss = F.cross_entropy(logits_flat, targets_flat, reduction="none")  # [N]
 
-        # Cross entropy per-pixel without reduction
-        ce = F.cross_entropy(logits, targets, reduction="none")  # [N]
+        with torch.no_grad():
+            pred_flat = logits_flat.argmax(dim=1)  # [N]
 
-        # Get predicted class
-        pred = logits.argmax(dim=1)  # [N]
 
-        # Lookup penalty per pixel from matrix
-        penalties = self.penalty_matrix[targets, pred]  # [N]
+        
+        penalties = self.penalty_matrix.to(targets_flat.device)[targets_flat, pred_flat]  # [N]
 
-        # Apply penalty
-        loss = penalties
+
+        loss = penalties * ce_loss
 
         if self.reduction == "mean":
             return loss.mean()
@@ -566,7 +535,7 @@ class CombinedLoss(nn.Module):
         self.ce = nn.CrossEntropyLoss()        
         
         # Learnable parameters (log variances for numerical stability)
-        self.log_vars = nn.Parameter(torch.randn(7))
+        self.log_vars = nn.Parameter(torch.zeros(7))
 
     def forward(self, inputs, targets):
         """
@@ -616,19 +585,64 @@ class CombinedLoss(nn.Module):
         
         return term1 + term2 + term3 + term4 + term5 + term6 + term7
 
-from torchvision.ops import sigmoid_focal_loss
-class MultiClassFocalLoss(nn.Module):
-    def __init__(self, alpha=0.25, gamma=2.0, reduction="mean"):
-        super().__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
+
+class CombinedLossV2(nn.Module):
+    """
+    Combines seven loss functions with learnable weights derived from a softmax.
+    The weights are guaranteed to be positive and sum to 1.
+    """
+    def __init__(self, focal_gamma=2.0, b_dice_smooth=1e-6):
+        """
+        Args:
+            focal_gamma (float): The gamma parameter for the internal Focal Loss.
+            b_dice_smooth (float): The smooth parameter for the internal Boundary Dice Loss.
+        """
+        super(CombinedLossV2, self).__init__()
+        
+        # --- 1. Instantiate internal loss functions ---
+        self.boundary_iou_loss = BoundaryIOU(smooth = b_dice_smooth)
+        self.boundary_dice_loss = BoundaryDiceLoss(smooth=b_dice_smooth)
+        self.focal_loss = FocalLoss(gamma=focal_gamma)
+        self.confusion_penalty_loss = ConfusionPenaltyLoss()
+        self.ensemble_inspired_loss = EnsembleInspiredLoss()
+        self.dice_loss = DiceLoss()
+        self.ce = nn.CrossEntropyLoss()        
+        
+        # --- 2. Learnable parameters ---
+        # Define 7 learnable logits, one for each loss.
+        # Initializing to zeros means all losses start with equal weight (1/7).
+        self.loss_logits = nn.Parameter(torch.zeros(7))
 
     def forward(self, inputs, targets):
-        num_classes = inputs.shape[1]
-        # one-hot encode
-        targets_onehot = F.one_hot(targets, num_classes=num_classes).permute(0, 3, 1, 2).float()
-        return sigmoid_focal_loss(
-            inputs, targets_onehot,
-            alpha=self.alpha, gamma=self.gamma, reduction=self.reduction
-        )
+        """
+        Args:
+            inputs (torch.Tensor): Model output logits [B, C, H, W].
+            targets (torch.Tensor): Ground truth labels [B, H, W].
+        
+        Returns:
+            torch.Tensor: The final combined, weighted loss.
+        """
+        
+        # --- 1. Calculate all individual losses ---
+        loss1 = self.boundary_iou_loss(inputs, targets)
+        loss2 = self.boundary_dice_loss(inputs, targets)
+        loss3 = self.focal_loss(inputs, targets)
+        loss4 = self.confusion_penalty_loss(inputs, targets)
+        loss5 = self.ensemble_inspired_loss(inputs, targets)
+        loss6 = self.dice_loss(inputs, targets)
+        loss7 = self.ce(inputs, targets)
+        
+        # --- 2. Calculate weights ---
+        # Apply softmax to the logits to get weights that sum to 1
+        weights = F.softmax(self.loss_logits, dim=0)
+        
+        # --- 3. Combine losses ---
+        # Stack all losses into a single tensor
+        all_losses = torch.stack([loss1, loss2, loss3, loss4, 
+                                  loss5, loss6, loss7])
+        
+        # Apply weights
+        # total_loss = w[0]*L1 + w[1]*L2 + ...
+        total_loss = torch.sum(weights * all_losses)
+        
+        return total_loss
