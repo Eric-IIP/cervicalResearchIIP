@@ -613,7 +613,7 @@ class CombinedLossV2(nn.Module):
         # Initializing to zeros means all losses start with equal weight (1/7).
         self.loss_logits = nn.Parameter(torch.zeros(7))
 
-    def forward(self, inputs, targets):
+    def forward(self, inputs, targets, return_weights = False):
         """
         Args:
             inputs (torch.Tensor): Model output logits [B, C, H, W].
@@ -645,4 +645,6 @@ class CombinedLossV2(nn.Module):
         # total_loss = w[0]*L1 + w[1]*L2 + ...
         total_loss = torch.sum(weights * all_losses)
         
+        if return_weights:
+            return total_loss, weights
         return total_loss
