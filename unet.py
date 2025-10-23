@@ -472,11 +472,32 @@ class UNet(nn.Module):
         d = {self.__class__.__name__: attributes}
         return f'{d}'
 
+class FusionBlock(nn.Module):
+    """
+    A simple fusion block.
+    It takes the concatenated feature maps from a group of decoders
+    and processes them to create a shared "fused_info" map.
+    The out_channels must match the channels of a single decoder's
+    feature map so it can be added back.
+    """
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        
+        # A 3x3 conv is good for learning local spatial relationships
+        # A 1x1 conv would be faster but only mixes channels.
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
 
+    def forward(self, x):
+        return self.fusion_conv(x)
 class MultiDecoderUNet(nn.Module):
     """
     Multi-decoder UNet version using your existing UNet backbone.
     Each decoder has its own UpBlocks and final conv layer.
+    NOW INCLUDES Grouped Decoder Fusion (Even/Odd).
     """
     def __init__(self, base_unet: UNet, num_decoders: int = 3):
         super().__init__()
@@ -489,13 +510,59 @@ class MultiDecoderUNet(nn.Module):
         self.normalization = base_unet.normalization
         self.conv_mode = base_unet.conv_mode
         self.up_mode = base_unet.up_mode
+        
+        # --- START MINIMAL ADDITION (for __init__) ---
+        
+        # 1. Count decoders in each group
+        self.num_even_decoders = len([i for i in range(num_decoders) if i % 2 == 0])
+        self.num_odd_decoders = len([i for i in range(num_decoders) if i % 2 != 0])
+        
+        # 2. Create fusion layer ModuleLists
+        self.even_fusion_layers = nn.ModuleList()
+        self.odd_fusion_layers = nn.ModuleList()
+        
+        # 3. Re-create the channel progression to build fusion layers
+        # This list will hold the channel counts for 'y' at each block_idx
+        # 'y' is the input to the UpBlock (module) from the previous (deeper) level
+        
+        # Channel count at the bottleneck (input to the *first* UpBlock)
+        current_y_channels = base_unet.start_filters * (2 ** (base_unet.n_blocks - 1))
+        
+        # Loop for each upsampling stage (e.g., 4 times for n_blocks=5)
+        for _ in range(base_unet.n_blocks - 1):
+            
+            # --- EVEN FUSION LAYER ---
+            # in_channels = num_even_decoders * channels_of_y
+            # out_channels = channels_of_y (so we can add it back: y + fused_info)
+            even_in_channels = self.num_even_decoders * current_y_channels
+            even_out_channels = current_y_channels
+            
+            self.even_fusion_layers.append(
+                FusionBlock(even_in_channels, even_out_channels)
+            )
 
-        # Create multiple decoders
+            # --- ODD FUSION LAYER ---
+            odd_in_channels = self.num_odd_decoders * current_y_channels
+            odd_out_channels = current_y_channels
+            
+            self.odd_fusion_layers.append(
+                FusionBlock(odd_in_channels, odd_out_channels)
+            )
+            
+            # --- Update channel count for the *next* loop iteration ---
+            # The 'y' for the next stage is the *output* of the current UpBlock.
+            # The current UpBlock's output is num_filters_in // 2.
+            current_y_channels = current_y_channels // 2
+
+        # --- END MINIMAL ADDITION ---
+
+        # Create multiple decoders (Your Original Code)
         self.decoders = nn.ModuleList()
         self.final_convs = nn.ModuleList()
 
         for _ in range(num_decoders):
             decoder_blocks = nn.ModuleList()
+            # This logic is correctly duplicated from your original
             num_filters_out = base_unet.start_filters * (2 ** (base_unet.n_blocks - 1))
             for _ in range(base_unet.n_blocks - 1):
                 num_filters_in = num_filters_out
@@ -518,21 +585,63 @@ class MultiDecoderUNet(nn.Module):
             )
 
     def forward(self, x):
-        # Encode once
+        # 1. Encode (Manually run the shared encoder blocks)
         encoder_outputs = []
+        y = x  # Start with the input image
         for module in self.encoder_blocks:
-            x, before_pool = module(x)
+            # Assuming your encoder blocks return (pooled_output, skip_connection)
+            y, before_pool = module(y)
             encoder_outputs.append(before_pool)
+        
+        # After loop, 'y' is the bottleneck feature map
 
+        # 2. Initialize all decoder 'y' tensors from the bottleneck
+        decoder_feature_maps = [y] * self.num_decoders 
+        
+        # 3. Loop through decoder *stages* (block_idx)
+        num_decoder_blocks = len(self.decoders[0]) # e.g., 4
+        
+        for block_idx in range(num_decoder_blocks):
+            
+            # Get the correct skip connection (using your original logic)
+            skip = encoder_outputs[-(block_idx + 2)] 
+            
+            # --- Grouped Fusion Step ---
+            even_maps = [decoder_feature_maps[i] for i in range(self.num_decoders) if i % 2 == 0]
+            odd_maps = [decoder_feature_maps[i] for i in range(self.num_decoders) if i % 2 != 0]
+
+            fused_even = self.even_fusion_layers[block_idx](torch.cat(even_maps, dim=1))
+            fused_odd = self.odd_fusion_layers[block_idx](torch.cat(odd_maps, dim=1))
+            # --- End Fusion ---
+
+            # --- Run each decoder's block ---
+            next_decoder_feature_maps = []
+            for dec_idx in range(self.num_decoders):
+                
+                # Get the specific UpBlock module
+                module = self.decoders[dec_idx][block_idx]
+                
+                # Get this decoder's current 'y' map
+                y_current = decoder_feature_maps[dec_idx]
+                
+                # Add the correct fused info (residual connection)
+                if dec_idx % 2 == 0:
+                    y_with_fusion = y_current + fused_even
+                else:
+                    y_with_fusion = y_current + fused_odd
+                
+                # Run the UpBlock (using your original (skip, y) signature)
+                y_out = module(skip, y_with_fusion) 
+                next_decoder_feature_maps.append(y_out)
+            
+            # Update feature maps for next iteration
+            decoder_feature_maps = next_decoder_feature_maps
+        
+        # 4. Final convolutions
         decoder_results = []
-        # Decode separately for each head
-        for dec_idx, decoder_blocks in enumerate(self.decoders):
-            y = x
-            for block_idx, module in enumerate(decoder_blocks):
-                skip = encoder_outputs[-(block_idx + 2)]
-                y = module(skip, y)
-            out = self.final_convs[dec_idx](y)
+        for dec_idx in range(self.num_decoders):
+            y_final = decoder_feature_maps[dec_idx] # Output of the last UpBlock
+            out = self.final_convs[dec_idx](y_final)
             decoder_results.append(out)
-
-        # Return as list or tensor
-        return decoder_results  # list of [B, C, H, W] outputs per decoder
+            
+        return decoder_results

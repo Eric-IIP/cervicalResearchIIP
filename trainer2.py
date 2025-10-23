@@ -176,15 +176,14 @@ class Trainer2:
             
             # training and validation loss plot
             # analysis on the training is done here            
-            plt.figure(figsize=(7, 5))
-            plt.plot(self.training_loss, label='Training Loss', color='blue')
-            plt.plot(self.validation_loss, label='Validation Loss', color='orange')
-            plt.xlabel('Epoch')
-            plt.ylabel('Loss')
-            plt.title('Training vs Validation Loss')
-            plt.legend()
-            plt.grid(True)
-            plt.show()
+            fig, ax = plt.subplots(figsize=(7, 5))  # Create figure and axes
+            ax.plot(self.training_loss, label='Training Loss', color='blue')
+            ax.plot(self.validation_loss, label='Validation Loss', color='orange')
+            ax.set_xlabel('Epoch')
+            ax.set_ylabel('Loss')
+            ax.set_title('Training vs Validation Loss')
+            ax.legend()
+            ax.grid(True)
             
         #feature analyze section eric
             ####    
@@ -213,7 +212,7 @@ class Trainer2:
             raise  # Re-raise the exception to see the full traceback
                     
              
-        return self.training_loss, self.validation_loss, self.learning_rate
+        return self.training_loss, self.validation_loss, self.learning_rate, fig
 
     def _train(self):
 
