@@ -79,6 +79,9 @@ class Trainer2:
         self.training_loss = []
         self.validation_loss = []
         self.learning_rate = []
+        
+        # for analyzing weight per independent loss
+        self.weights_history = []
 
         # Set up a logger
         self.logger = logging.getLogger('Trainer2')
@@ -99,6 +102,8 @@ class Trainer2:
         
         #ここでearlystoppingの打ち切り回数設定
         early_stopping = EarlyStopping(patience = 50,verbose = True)
+        
+        
         
         try:
             for i in progressbar:
@@ -185,6 +190,17 @@ class Trainer2:
             ax.legend()
             ax.grid(True)
             
+            fig2, ax2 = plt.subplots(figsize=(10,6))
+    
+            for i in range(self.weights_history.shape[1]):
+                ax2.plot(self.weights_history[:, i], label=f'Loss {i+1}')
+            
+            ax2.set_xlabel('Iteration')
+            ax2.set_ylabel('Learned Weight (softmax)')
+            ax2.set_title('Learned Loss Weights Over Training')
+            ax2.legend()
+            ax2.grid(True)
+            
         #feature analyze section eric
             ####    
             # last_epoch_mean_activation = self.all_mean_activations[-1]
@@ -212,7 +228,7 @@ class Trainer2:
             raise  # Re-raise the exception to see the full traceback
                     
              
-        return self.training_loss, self.validation_loss, self.learning_rate, fig
+        return self.training_loss, self.validation_loss, self.learning_rate, fig, fig2
 
     def _train(self):
 
@@ -236,7 +252,7 @@ class Trainer2:
             
             self.optimizer.zero_grad()  # zerograd the parameters
             out = self.model(input)  # one forward pass
-            loss = self.criterion(out, target)  # calculate loss
+            loss, weights = self.criterion(out, target)  # calculate loss
             loss_value = loss.item()
             train_losses.append(loss_value)
             loss.backward()  # one backward pass
@@ -266,6 +282,7 @@ class Trainer2:
         #    sp_cnt = 1
         ##
 
+        self.weights_history.append(weights.detach().cpu().numpy())
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
