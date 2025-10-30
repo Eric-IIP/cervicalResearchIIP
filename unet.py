@@ -417,7 +417,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 10
+        self.in_channels = 9
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -587,7 +587,7 @@ class UNet(nn.Module):
         # x13 = self.cn13(x)
         #x7 = x
         
-        x = torch.cat((x, x1, x2, x3), dim=1)
+        x = torch.cat((x1, x2, x3), dim=1)
                 
         #x = x3
         # Encoder pathway
