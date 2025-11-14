@@ -535,9 +535,9 @@ class CombinedLoss(nn.Module):
         self.ce = nn.CrossEntropyLoss()        
         
         # Learnable parameters (log variances for numerical stability)
-        self.log_vars = nn.Parameter(torch.zeros(7))
-
-    def forward(self, inputs, targets):
+        self.log_vars = nn.Parameter(torch.zeros(6))
+        #self.log_vars = nn.Parameter(torch.randn(7))
+    def forward(self, inputs, targets, return_weights = False):
         """
         Args:
             inputs (torch.Tensor): Model output logits [B, C, H, W].
@@ -563,27 +563,34 @@ class CombinedLoss(nn.Module):
         precision3 = 0.5 * torch.exp(-self.log_vars[2])
         term3 = precision3 * loss3 + 0.5 * self.log_vars[2]
         
-        # --- Calculate Loss Term 4: Confusion Penalty Loss ---
-        loss4 = self.confusion_penalty_loss(inputs, targets)
-        precision4 = 0.5 * torch.exp(-self.log_vars[3])
-        term4 = precision4 * loss4 + 0.5 * self.log_vars[3]
+        # # --- Calculate Loss Term 4: Confusion Penalty Loss ---
+        # loss4 = self.confusion_penalty_loss(inputs, targets)
+        # precision4 = 0.5 * torch.exp(-self.log_vars[3])
+        # term4 = precision4 * loss4 + 0.5 * self.log_vars[3]
         
         # --- Calculate Loss Term 5: Ensemble inspired custom Loss ---
         loss5 = self.ensemble_inspired_loss(inputs, targets)
-        precision5 = 0.5 * torch.exp(-self.log_vars[4])
-        term5 = precision5 * loss5 + 0.5 * self.log_vars[4]
+        precision5 = 0.5 * torch.exp(-self.log_vars[3])
+        term5 = precision5 * loss5 + 0.5 * self.log_vars[3]
         
         # --- Calculate Loss Term 6: Dice Loss ---
         loss6 = self.dice_loss(inputs, targets)
-        precision6 = 0.5 * torch.exp(-self.log_vars[5])
-        term6 = precision6 * loss6 + 0.5 * self.log_vars[5]
+        precision6 = 0.5 * torch.exp(-self.log_vars[4])
+        term6 = precision6 * loss6 + 0.5 * self.log_vars[4]
         
         # --- Calculate Loss Term 7: Cross entropy Loss ---
         loss7 = self.ce(inputs, targets)
-        precision7 = 0.5 * torch.exp(-self.log_vars[6])
-        term7 = precision7 * loss7 + 0.5 * self.log_vars[6]
+        precision7 = 0.5 * torch.exp(-self.log_vars[5])
+        term7 = precision7 * loss7 + 0.5 * self.log_vars[5]
+        print("logits before:", self.log_vars.device)
+        total_loss = term1 + term2 + term3 + term5 + term6 + term7
         
-        return term1 + term2 + term3 + term4 + term5 + term6 + term7
+        if return_weights:
+            terms = torch.stack([term1, term2, term3, term5, term6, term7])
+            precisions = torch.stack([precision1, precision2, precision3, precision5, precision6, precision7])
+            return total_loss, precisions
+        else:
+            return total_loss
 
 
 class CombinedLossV2(nn.Module):
@@ -597,6 +604,8 @@ class CombinedLossV2(nn.Module):
             focal_gamma (float): The gamma parameter for the internal Focal Loss.
             b_dice_smooth (float): The smooth parameter for the internal Boundary Dice Loss.
         """
+        
+        
         super(CombinedLossV2, self).__init__()
         
         # --- 1. Instantiate internal loss functions ---
@@ -607,11 +616,11 @@ class CombinedLossV2(nn.Module):
         self.ensemble_inspired_loss = EnsembleInspiredLoss()
         self.dice_loss = DiceLoss()
         self.ce = nn.CrossEntropyLoss()        
-        
+        self.loss_logits = nn.Parameter(torch.zeros(6))
         # --- 2. Learnable parameters ---
         # Define 7 learnable logits, one for each loss.
         # Initializing to zeros means all losses start with equal weight (1/7).
-        self.loss_logits = nn.Parameter(torch.zeros(7))
+        
 
     def forward(self, inputs, targets, return_weights = False):
         """
@@ -627,19 +636,27 @@ class CombinedLossV2(nn.Module):
         loss1 = self.boundary_iou_loss(inputs, targets)
         loss2 = self.boundary_dice_loss(inputs, targets)
         loss3 = self.focal_loss(inputs, targets)
-        loss4 = self.confusion_penalty_loss(inputs, targets)
+        #loss4 = self.confusion_penalty_loss(inputs, targets)
         loss5 = self.ensemble_inspired_loss(inputs, targets)
         loss6 = self.dice_loss(inputs, targets)
         loss7 = self.ce(inputs, targets)
         
         # --- 2. Calculate weights ---
         # Apply softmax to the logits to get weights that sum to 1
+        #print("logits", self.loss_logits.device)
         weights = F.softmax(self.loss_logits, dim=0)
+        
+        
+        #print("weights:", weights.device)
         
         # --- 3. Combine losses ---
         # Stack all losses into a single tensor
-        all_losses = torch.stack([loss1, loss2, loss3, loss4, 
+        all_losses = torch.stack([loss1, loss2, loss3, 
                                   loss5, loss6, loss7])
+        
+        
+        #print("loss:", all_losses.device)
+        
         
         # Apply weights
         # total_loss = w[0]*L1 + w[1]*L2 + ...

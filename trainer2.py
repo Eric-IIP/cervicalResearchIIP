@@ -194,39 +194,26 @@ class Trainer2:
                 "Boundary IOU Loss",
                 "Boundary Dice Loss",
                 "Focal Loss",
-                "Confusion Penalty Loss",
+                #"Confusion Penalty Loss",
                 "Ensemble Inspired Loss",
                 "Dice Loss",
                 "Cross Entropy Loss"
             ]
-
-            # fig2, ax2 = plt.subplots(figsize=(10,6))
-
-            # # Plot each loss weight with its actual name
-            # for i in range(self.weights_history.shape[1]):
-            #     ax2.plot(self.weights_history[:, i], label=loss_names[i])
-
-            # ax2.set_xlabel('Iteration')
-            # ax2.set_ylabel('Learned Weight (softmax)')
-            # ax2.set_title('Learned Loss Weights Over Training')
-            # ax2.legend()
-            # ax2.grid(True)
             
-        #feature analyze section eric
-            ####    
-            # last_epoch_mean_activation = self.all_mean_activations[-1]
-            # last_epoch_max_activation = self.all_max_activations[-1]
+            weights_arr = np.stack(self.weights_history)
+            
+            
+            fig2, ax2 = plt.subplots(figsize=(10,6))
 
-            # # Print the mean activation values for each filter in the last epoch
-            # print("Last Epoch - Mean activation values for each filter:")
-            # for idx, mean_value in enumerate(last_epoch_mean_activation[0]):  # Iterate over each filter
-            #     print(f"Filter {idx}: {mean_value.item()}")
+            # Plot each loss weight with its actual name
+            for i in range(weights_arr.shape[1]):
+                ax2.plot(weights_arr[:, i], label=loss_names[i])
 
-            # # Print the max activation values for each filter in the last epoch
-            # print("\nLast Epoch - Max activation values for each filter:")
-            # for idx, max_value in enumerate(last_epoch_max_activation[0]):  # Iterate over each filter
-            #     print(f"Filter {idx}: {max_value.item()}")
-            #####
+            ax2.set_xlabel('Iteration')
+            ax2.set_ylabel('Learned Weight (softmax)')
+            ax2.set_title('Learned Loss Weights Over Training')
+            ax2.legend()
+            ax2.grid(True)
 
         except Exception as e:  
             print("An error occurred during training/validation:")
@@ -239,7 +226,7 @@ class Trainer2:
             raise  # Re-raise the exception to see the full traceback
                     
              
-        return self.training_loss, self.validation_loss, self.learning_rate, fig, #for learnable weight fig2
+        return self.training_loss, self.validation_loss, self.learning_rate, fig, fig2
 
     def _train(self):
 
@@ -264,9 +251,11 @@ class Trainer2:
             self.optimizer.zero_grad()  # zerograd the parameters
             out = self.model(input)  # one forward pass
             # for commbined loss with learnable weight
-            #loss, weights = self.criterion(out, target, return_weights = True)  # calculate loss
+            loss, weights = self.criterion(out, target, return_weights = True)  # calculate loss
+            #print("Learned loss weights")
+            #print(weights)
             #for other losses
-            loss = self.criterion(out, target)  # calculate loss
+            #loss = self.criterion(out, target)  # calculate loss
             loss_value = loss.item()
             train_losses.append(loss_value)
             loss.backward()  # one backward pass
@@ -274,30 +263,8 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
-        ##recently added by eric, getting hook results to visualize masks
-        #sp_cnt= 0
-        #if sp_cnt == 0:
-            
-            #uses up all cuda memory in one forward pass
-            # #taking last upblock result in one epoch
-            # decoder_outputs = self.model.decoder_output
-            # iz = 0
-            # feat = decoder_outputs[len(decoder_outputs)-1]
-            # feat = feat[len(feat)-1]  # taking the last sample in the batch
-            # mean_feat = feat.mean(0).detach().cpu().numpy()
-            # resized = cv2.resize(mean_feat, (256, 256)) 
-            # path_name = f"/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/hook_up_result{str(iz)}.png"
-            # cv2.imwrite(path_name, resized)
-            
-            #taking last seg mask result in one epoch
-            # seg_ten = self.model.pre_x.argmax(dim = 1)
-            # img_np = tensor_to_image(seg_ten)
-            # save_image_unique("/home/eric/Documents/cervicalResearchIIP/result_test/20250604-unetlowshow/presegmask.png", img_np)
-        #    sp_cnt = 1
-        ##
-
         # for combined loss with learnable weight
-        #self.weights_history.append(weights.detach().cpu().numpy())
+        self.weights_history.append(weights.cpu().detach().numpy())
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
@@ -333,19 +300,22 @@ class Trainer2:
                 batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
                 
                 # Optional visualization for first batch/image
-                ####
-                if i == 0:
-                    logits = out[0]  # [C, H, W] - logits for first image
+                ###
+                if i == 1:
+                    # limited by number of images in batch
+                    # in my case batch size is 2 so only 0 and 1
+                    image_idx = 0
+                    logits = out[image_idx]  # [C, H, W] - logits for first image
                     probs = torch.softmax(logits, dim=0)  # normalize across classes (C)
 
-                    print("Probabilities shape")
-                    print(probs.shape)       # [C, H, W]
-                    print("Sum across classes around ~1 per pixel")
-                    print(probs.sum(dim=0))  # each pixel's class probs ≈ 1
+                    # print("Probabilities shape")
+                    # print(probs.shape)       # [C, H, W]
+                    # print("Sum across classes around ~1 per pixel")
+                    # print(probs.sum(dim=0))  # each pixel's class probs ≈ 1
 
                     num_classes = probs.shape[0]
 
-                    plt.figure(figsize=(12, 4))
+                    plt.figure(figsize=(24, 4))
                     for c in range(num_classes):
                         plt.subplot(1, num_classes, c + 1)
                         plt.imshow(probs[c].cpu(), cmap='viridis')
@@ -357,7 +327,7 @@ class Trainer2:
                     pred_mask = probs.argmax(dim=0)  # [H, W]
 
                     # Ground truth comparison (assuming target shape [B, H, W])
-                    error_map = (pred_mask.cpu() != target[0].cpu()).float()
+                    error_map = (pred_mask.cpu() != target[image_idx].cpu()).float()
 
                     plt.imshow(error_map, cmap='Reds')
                     plt.title('Misclassified pixels')

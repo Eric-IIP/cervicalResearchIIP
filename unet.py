@@ -361,11 +361,11 @@ class UNet(nn.Module):
         self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         
-        self.fusion4 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion5 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        #self.fusion4 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        #self.fusion5 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
         
         
-        self.bn1 = nn.BatchNorm2d(3)
+        #self.bn1 = nn.BatchNorm2d(3)
         
         
         # self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
