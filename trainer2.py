@@ -190,30 +190,7 @@ class Trainer2:
             ax.legend()
             ax.grid(True)
             
-            loss_names = [
-                "Boundary IOU Loss",
-                "Boundary Dice Loss",
-                "Focal Loss",
-                #"Confusion Penalty Loss",
-                "Ensemble Inspired Loss",
-                "Dice Loss",
-                "Cross Entropy Loss"
-            ]
             
-            weights_arr = np.stack(self.weights_history)
-            
-            
-            fig2, ax2 = plt.subplots(figsize=(10,6))
-
-            # Plot each loss weight with its actual name
-            for i in range(weights_arr.shape[1]):
-                ax2.plot(weights_arr[:, i], label=loss_names[i])
-
-            ax2.set_xlabel('Iteration')
-            ax2.set_ylabel('Learned Weight (softmax)')
-            ax2.set_title('Learned Loss Weights Over Training')
-            ax2.legend()
-            ax2.grid(True)
 
         except Exception as e:  
             print("An error occurred during training/validation:")
@@ -226,7 +203,7 @@ class Trainer2:
             raise  # Re-raise the exception to see the full traceback
                     
              
-        return self.training_loss, self.validation_loss, self.learning_rate, fig, fig2
+        return self.training_loss, self.validation_loss, self.learning_rate, fig
 
     def _train(self):
 
@@ -251,8 +228,7 @@ class Trainer2:
             self.optimizer.zero_grad()  # zerograd the parameters
             out = self.model(input)  # one forward pass
             # for combined loss with learnable weight
-            loss, weights = self.criterion(out, target, return_weights = True)  # calculate loss
-            #loss = self.criterion(out, target) 
+            loss = self.criterion(out, target)  # calculate loss
             #print("Learned loss weights")
             #print(weights)
             #for other losses
@@ -264,8 +240,6 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
-        # for combined loss with learnable weight
-        self.weights_history.append(weights.cpu().detach().numpy())
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
