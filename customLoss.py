@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
+from scipy.ndimage import distance_transform_edt
 
 ## dice loss
 class DiceLoss(nn.Module):
@@ -582,11 +582,9 @@ class CombinedLoss(nn.Module):
         loss7 = self.ce(inputs, targets)
         precision7 = 0.5 * torch.exp(-self.log_vars[5])
         term7 = precision7 * loss7 + 0.5 * self.log_vars[5]
-        print("logits before:", self.log_vars.device)
         total_loss = term1 + term2 + term3 + term5 + term6 + term7
         
         if return_weights:
-            terms = torch.stack([term1, term2, term3, term5, term6, term7])
             precisions = torch.stack([precision1, precision2, precision3, precision5, precision6, precision7])
             return total_loss, precisions
         else:
@@ -664,4 +662,63 @@ class CombinedLossV2(nn.Module):
         
         if return_weights:
             return total_loss, weights
+        return total_loss
+    
+    
+    
+    
+class HausdorffLoss(nn.Module):
+    """
+    Differentiable Hausdorff Loss for multi-class segmentation.
+    Accepts raw logits and integer targets, applies softmax internally.
+    """
+
+    def __init__(self, classes=None, reduction='mean', device='cuda'):
+        super().__init__()
+        self.classes = classes
+        self.reduction = reduction
+        self.device = device
+
+    def forward(self, logits, target):
+        """
+        Args:
+            logits: [B, C, H, W] raw network outputs
+            target: [B, H, W] integer labels
+        Returns:
+            scalar loss
+        """
+        B, C, H, W = logits.shape
+        if self.classes is None:
+            classes = range(C)
+        else:
+            classes = self.classes
+
+        # Apply softmax internally
+        pred = F.softmax(logits, dim=1)  # [B, C, H, W]
+
+        total_loss = 0.0
+
+        for c in classes:
+            # Binary mask for current class
+            target_c = (target == c).float()  # [B,H,W]
+            pred_c   = pred[:, c, :, :]       # [B,H,W]
+
+            batch_loss = 0.0
+            for b in range(B):
+                t = target_c[b].detach().cpu().numpy()
+                if t.sum() == 0:
+                    continue
+                dt_target = torch.from_numpy(distance_transform_edt(t == 0)).float().to(self.device)
+                dt_pred   = torch.from_numpy(distance_transform_edt(t == 1)).float().to(self.device)
+
+                term = torch.mean(pred_c[b] * dt_target + target_c[b] * dt_pred)
+                batch_loss += term
+
+            if self.reduction == 'mean':
+                batch_loss /= B
+            total_loss += batch_loss
+
+        if self.reduction == 'mean':
+            total_loss /= len(classes)
+
         return total_loss
