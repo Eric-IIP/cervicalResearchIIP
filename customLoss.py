@@ -722,3 +722,25 @@ class HausdorffLoss(nn.Module):
             total_loss /= len(classes)
 
         return total_loss
+    
+class JointCELossHausdorff(nn.Module):
+    """
+    Combined CrossEntropy + Hausdorff Loss.
+    """
+
+    def __init__(self, lambda_hd=0.1, classes=None, device='cuda'):
+        """
+        Args:
+            lambda_hd: weight for the Hausdorff loss
+            classes: list of class indices to include
+        """
+        super().__init__()
+        self.ce = nn.CrossEntropyLoss()  # standard CE
+        self.hd = HausdorffLoss(classes=classes, device=device)
+        self.lambda_hd = lambda_hd
+
+    def forward(self, logits, target):
+        ce_loss = self.ce(logits, target)
+        hd_loss = self.hd(logits, target)
+        total_loss = ce_loss + self.lambda_hd * hd_loss
+        return total_loss
