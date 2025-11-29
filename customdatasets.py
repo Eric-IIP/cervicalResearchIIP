@@ -27,6 +27,9 @@ class SegmentationDataSet0(data.Dataset):
     def __getitem__(self,
                     index: int):
         # Select the sample
+        
+        
+        
         x = self.inputs[index]
         y = self.targets[index]
 
@@ -38,7 +41,15 @@ class SegmentationDataSet0(data.Dataset):
             x, y = self.transform(x, y)
 
         # Typecasting
-        x, y = torch.from_numpy(x).type(self.inputs_dtype), torch.from_numpy(y).type(self.targets_dtype)
+        if not isinstance(x, torch.Tensor):
+            x = torch.from_numpy(x).type(self.inputs_dtype)
+        else:
+            x = x.type(self.inputs_dtype)
+
+        if not isinstance(y, torch.Tensor):
+            y = torch.from_numpy(y).type(self.targets_dtype)
+        else:
+            y = y.type(self.targets_dtype)
 
         return x, y
 

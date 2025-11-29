@@ -239,5 +239,5 @@ model/
 *.tiff
 *.svg
 
-
+*.npy
 checkpoint.pt

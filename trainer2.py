@@ -83,6 +83,14 @@ class Trainer2:
         # for analyzing weight per independent loss
         self.weights_history = []
 
+        
+        #for cascadeunet
+        self.epoch_train_preds = []
+        self.epoch_train_targets = []
+        self.epoch_val_preds = []
+        self.epoch_val_targets = []
+
+        
         # Set up a logger
         self.logger = logging.getLogger('Trainer2')
         self.logger.setLevel(logging.DEBUG)
@@ -203,7 +211,7 @@ class Trainer2:
             raise  # Re-raise the exception to see the full traceback
                     
              
-        return self.training_loss, self.validation_loss, self.learning_rate, fig
+        return self.training_loss, self.validation_loss, self.learning_rate, fig, self.epoch_train_preds, self.epoch_train_targets, self.epoch_val_preds, self.epoch_val_targets
 
     def _train(self):
 
@@ -215,6 +223,10 @@ class Trainer2:
         #print("start train model!")
         self.model.train()  # train mode
         train_losses = []  # accumulate the losses here
+        #for cascade
+        epoch_preds = []
+        epoch_targets = []
+        
         batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
                           leave=False)
         
@@ -227,6 +239,12 @@ class Trainer2:
             
             self.optimizer.zero_grad()  # zerograd the parameters
             out = self.model(input)  # one forward pass
+            
+            # Store predicted masks (argmax on channel dim)
+            pred = torch.argmax(out, dim=1).detach().cpu()
+            epoch_preds.append(pred)
+            epoch_targets.append(target.detach().cpu())
+            
             # for combined loss with learnable weight
             loss = self.criterion(out, target)  # calculate loss
             #print("Learned loss weights")
@@ -240,6 +258,9 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
+        #cascade
+        self.epoch_train_preds.append(torch.cat(epoch_preds))
+        self.epoch_train_targets.append(torch.cat(epoch_targets))
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
@@ -257,6 +278,11 @@ class Trainer2:
 
         self.model.eval()  # evaluation mode
         valid_losses = []  # accumulate the losses here
+        
+        #for cascade
+        epoch_val_preds = []
+        epoch_val_targets = []
+        
         batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
                           leave=False)
 
@@ -268,6 +294,13 @@ class Trainer2:
             
             with torch.no_grad():
                 out = self.model(input)
+                
+                #cascade
+                pred = torch.argmax(out, dim=1).cpu()
+                epoch_val_preds.append(pred)
+                epoch_val_targets.append(target.cpu())
+
+                
                 loss = self.criterion(out, target)
                 loss_value = loss.item()
                 valid_losses.append(loss_value)
@@ -276,39 +309,40 @@ class Trainer2:
                 
                 # Optional visualization for first batch/image
                 ###
-                if i == 1:
-                    # limited by number of images in batch
-                    # in my case batch size is 2 so only 0 and 1
-                    image_idx = 0
-                    logits = out[image_idx]  # [C, H, W] - logits for first image
-                    probs = torch.softmax(logits, dim=0)  # normalize across classes (C)
+                # if i == 1:
+                #     # limited by number of images in batch
+                #     # in my case batch size is 2 so only 0 and 1
+                #     image_idx = 0
+                #     logits = out[image_idx]  # [C, H, W] - logits for first image
+                #     probs = torch.softmax(logits, dim=0)  # normalize across classes (C)
 
-                    # print("Probabilities shape")
-                    # print(probs.shape)       # [C, H, W]
-                    # print("Sum across classes around ~1 per pixel")
-                    # print(probs.sum(dim=0))  # each pixel's class probs ≈ 1
+                #     # print("Probabilities shape")
+                #     # print(probs.shape)       # [C, H, W]
+                #     # print("Sum across classes around ~1 per pixel")
+                #     # print(probs.sum(dim=0))  # each pixel's class probs ≈ 1
 
-                    num_classes = probs.shape[0]
+                #     num_classes = probs.shape[0]
 
-                    plt.figure(figsize=(24, 4))
-                    for c in range(num_classes):
-                        plt.subplot(1, num_classes, c + 1)
-                        plt.imshow(probs[c].cpu(), cmap='viridis')
-                        plt.title(f'Prob - Class {c}')
-                        plt.axis('off')
-                    plt.show()
+                #     plt.figure(figsize=(24, 4))
+                #     for c in range(num_classes):
+                #         plt.subplot(1, num_classes, c + 1)
+                #         plt.imshow(probs[c].cpu(), cmap='viridis')
+                #         plt.title(f'Prob - Class {c}')
+                #         plt.axis('off')
+                #     plt.show()
 
-                    # Get predicted class per pixel
-                    pred_mask = probs.argmax(dim=0)  # [H, W]
+                #     # Get predicted class per pixel
+                #     pred_mask = probs.argmax(dim=0)  # [H, W]
 
-                    # Ground truth comparison (assuming target shape [B, H, W])
-                    error_map = (pred_mask.cpu() != target[image_idx].cpu()).float()
+                #     # Ground truth comparison (assuming target shape [B, H, W])
+                #     error_map = (pred_mask.cpu() != target[image_idx].cpu()).float()
 
-                    plt.imshow(error_map, cmap='Reds')
-                    plt.title('Misclassified pixels')
-                    plt.show()
+                #     plt.imshow(error_map, cmap='Reds')
+                #     plt.title('Misclassified pixels')
+                #     plt.show()
 
                 ####
-
+        self.epoch_val_preds.append(torch.cat(epoch_val_preds))
+        self.epoch_val_targets.append(torch.cat(epoch_val_targets))
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()
