@@ -307,11 +307,11 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 3, padding="same", dilation = 21)
+        #self.fusion = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding="same", dilation = 21)
         
         
         # Version single 1x1
-        #self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
+        self.fusion = nn.Conv2d(in_channels, 1, 1, padding = 'same')
         #print(self.fusion.weight)
         #Version multiple 12.1
         #self.cn1 = nn.Conv2d(in_channels, out_channels = 3, kernel_size = 1, padding='same')
@@ -351,7 +351,7 @@ class UNet(nn.Module):
         
         
         
-        self.in_channels = 3
+        self.in_channels = 1
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
