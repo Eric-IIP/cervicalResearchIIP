@@ -89,6 +89,7 @@ class Trainer2:
         self.epoch_train_targets = []
         self.epoch_val_preds = []
         self.epoch_val_targets = []
+        self.best_pred_epoch = 20
 
         
         # Set up a logger
@@ -259,8 +260,10 @@ class Trainer2:
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
         #cascade
-        self.epoch_train_preds.append(torch.cat(epoch_preds))
-        self.epoch_train_targets.append(torch.cat(epoch_targets))
+        if self.epoch == self.best_pred_epoch:
+            self.epoch_train_preds = torch.cat(epoch_preds)
+            self.epoch_train_targets = torch.cat(epoch_targets)
+
         
         self.training_loss.append(np.mean(train_losses))
         self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
@@ -342,7 +345,9 @@ class Trainer2:
                 #     plt.show()
 
                 ####
-        self.epoch_val_preds.append(torch.cat(epoch_val_preds))
-        self.epoch_val_targets.append(torch.cat(epoch_val_targets))
+        if self.epoch == self.best_pred_epoch:
+            self.epoch_val_preds = torch.cat(epoch_val_preds)
+            self.epoch_val_targets = torch.cat(epoch_val_targets)
+
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()
