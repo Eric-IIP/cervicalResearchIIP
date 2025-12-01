@@ -239,6 +239,7 @@ model/
 *.tiff
 *.svg
 *.npy
+*.npz
 
 
 checkpoint.pt
