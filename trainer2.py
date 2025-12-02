@@ -242,7 +242,7 @@ class Trainer2:
             out = self.model(input)  # one forward pass
             
             # Store predicted masks (argmax on channel dim)
-            pred = torch.argmax(out, dim=1).detach().cpu()
+            pred = torch.softmax(out, dim=1).detach().cpu()  # [B, C, H, W]
             epoch_preds.append(pred)
             epoch_targets.append(target.detach().cpu())
             
@@ -299,7 +299,7 @@ class Trainer2:
                 out = self.model(input)
                 
                 #cascade
-                pred = torch.argmax(out, dim=1).cpu()
+                pred = torch.softmax(out, dim=1).cpu()  # [B, C, H, W]
                 epoch_val_preds.append(pred)
                 epoch_val_targets.append(target.cpu())
 
