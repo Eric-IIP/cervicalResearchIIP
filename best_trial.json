@@ -1,0 +1,9 @@
+{
+    "best_trial": 0,
+    "dice2": 0.5766135610568542,
+    "dice1": 0.6577521867419315,
+    "params": {
+        "mine_epoch": 10,
+        "min_error_threshold": 857
+    }
+}
