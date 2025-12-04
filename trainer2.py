@@ -4,6 +4,7 @@ import torch
 import time
 import logging
 import matplotlib.pyplot as plt
+import os
 from svimg import save_image_unique
 from svimg import tensor_to_image
 from torch.optim.lr_scheduler import (
@@ -29,7 +30,11 @@ class Trainer2:
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  epochs: int = 100,
                  epoch: int = 0,
-                 notebook: bool = False
+                 notebook: bool = False,
+                 mine_epoch: int = 25,       # start mining after this epoch
+                 max_mine_train: int = 22,
+                 max_mine_val: int = 11,
+                 min_error_threshold: int = 150  
                  ):
 
         self.model = model
@@ -55,7 +60,7 @@ class Trainer2:
             step_size_up=500, # Gradual increase for 2000 iterations
             step_size_down=500, # Gradual decrease for 2000 iterations
             mode='triangular', # Linear up and down
-            cycle_momentum=False 
+            cycle_momentum=False
         ) 
         
         #total_steps = num_epochs * (train_dataset_size // batch_size)
@@ -89,7 +94,19 @@ class Trainer2:
         self.epoch_train_targets = []
         self.epoch_val_preds = []
         self.epoch_val_targets = []
-        self.best_pred_epoch = 20
+        self.best_pred_epoch = 50
+        
+        # Stage-2 sample collection params
+        # self.mine_epoch = 25       # start mining after this epoch
+        # self.max_mine_train = 660
+        # self.max_mine_val = 330
+        # self.min_error_threshold = 150  # tune later
+
+        self.mine_epoch = mine_epoch       # start mining after this epoch
+        self.max_mine_train = max_mine_train
+        self.max_mine_val = max_mine_val
+        self.min_error_threshold = min_error_threshold  # tune later
+        
 
         
         # Set up a logger
@@ -241,10 +258,32 @@ class Trainer2:
             self.optimizer.zero_grad()  # zerograd the parameters
             out = self.model(input)  # one forward pass
             
-            # Store predicted masks (argmax on channel dim)
-            pred = torch.softmax(out, dim=1).detach().cpu()  # [B, C, H, W]
-            epoch_preds.append(pred)
-            epoch_targets.append(target.detach().cpu())
+            
+            if self.epoch >= self.mine_epoch:
+                probs = torch.softmax(out, dim=1).detach().cpu()  # [B, C, H, W]
+                preds = torch.argmax(probs, dim=1)                # [B, H, W]
+                targets_cpu = target.detach().cpu()
+
+                for b in range(preds.shape[0]):
+                    pred_b = preds[b]
+                    target_b = targets_cpu[b]
+                    prob_b = probs[b]    # use probabilities for stage-2 input
+
+                    wrong = (pred_b != target_b)                  # pixel-wise
+                    fg    = (target_b != 0)                       # foreground mask
+                    hard_errors = (wrong & fg)
+
+                    if hard_errors.sum() >= self.min_error_threshold:
+                        if len(self.epoch_train_preds) < self.max_mine_train:
+                            # Keep a batch dimension so later concatenation yields [N, C, H, W] and [N, H, W]
+                            self.epoch_train_preds.append(prob_b.unsqueeze(0))    # [1,C,H,W]
+                            self.epoch_train_targets.append(target_b.unsqueeze(0)) # [1,H,W]
+                            
+                            print("Train preds for stage 2: " + str(len(self.epoch_train_preds)))
+
+                            if len(self.epoch_train_preds) >= self.max_mine_train:
+                                break
+
             
             # for combined loss with learnable weight
             loss = self.criterion(out, target)  # calculate loss
@@ -259,10 +298,10 @@ class Trainer2:
 
             batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
         
-        #cascade
-        if self.epoch == self.best_pred_epoch:
-            self.epoch_train_preds = torch.cat(epoch_preds)
-            self.epoch_train_targets = torch.cat(epoch_targets)
+        # #cascade
+        # if self.epoch == self.best_pred_epoch:
+        #     self.epoch_train_preds = torch.cat(epoch_preds)
+        #     self.epoch_train_targets = torch.cat(epoch_targets)
 
         
         self.training_loss.append(np.mean(train_losses))
@@ -299,9 +338,31 @@ class Trainer2:
                 out = self.model(input)
                 
                 #cascade
-                pred = torch.softmax(out, dim=1).cpu()  # [B, C, H, W]
-                epoch_val_preds.append(pred)
-                epoch_val_targets.append(target.cpu())
+                if self.epoch >= self.mine_epoch:
+                    probs = torch.softmax(out, dim=1).detach().cpu()  # [B,C,H,W]
+                    preds = torch.argmax(probs, dim=1)                # [B,H,W]
+                    targets_cpu = target.detach().cpu()
+
+                    for b in range(preds.shape[0]):
+                        pred_b = preds[b]
+                        target_b = targets_cpu[b]
+                        prob_b = probs[b]  # softmax output for stage-2
+
+                        wrong = (pred_b != target_b)
+                        fg    = (target_b != 0)
+                        hard_errors = (wrong & fg)
+
+                        if hard_errors.sum() >= self.min_error_threshold:
+                            if len(self.epoch_val_preds) < self.max_mine_val:
+                                # Keep a batch dimension to match training preds format
+                                self.epoch_val_preds.append(prob_b.unsqueeze(0))
+                                self.epoch_val_targets.append(target_b.unsqueeze(0))
+                                print("Val preds for stage 2: " + str(len(self.epoch_train_preds)))
+
+                            # stop mining but keep validating
+                            if len(self.epoch_train_preds) >= self.max_mine_val:
+                                break
+
 
                 
                 loss = self.criterion(out, target)
@@ -345,9 +406,76 @@ class Trainer2:
                 #     plt.show()
 
                 ####
-        if self.epoch == self.best_pred_epoch:
-            self.epoch_val_preds = torch.cat(epoch_val_preds)
-            self.epoch_val_targets = torch.cat(epoch_val_targets)
+        # if self.epoch == self.best_pred_epoch:
+        #     self.epoch_val_preds = torch.cat(epoch_val_preds)
+        #     self.epoch_val_targets = torch.cat(epoch_val_targets)
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()
+
+    def plot_mined_samples(self, n=10, split='train', save_path: str = None):
+        """Plot up to `n` mined samples for `split` in {'train','val'}.
+
+        Each row shows: [predicted mask, ground truth]. Predicted mask is
+        obtained by argmax over probability channels.
+        Returns the path to the saved figure or None if nothing to plot.
+        """
+        import torch
+
+        if split == 'train':
+            preds_list = self.epoch_train_preds
+            targets_list = self.epoch_train_targets
+        else:
+            preds_list = self.epoch_val_preds
+            targets_list = self.epoch_val_targets
+
+        if len(preds_list) == 0 or len(targets_list) == 0:
+            print(f"No mined {split} samples to plot.")
+            return None
+
+        # Concatenate collected tensors (they were stored with a leading batch dim)
+        try:
+            preds = torch.cat(preds_list, dim=0)  # [N, C, H, W]
+            targets = torch.cat(targets_list, dim=0)  # [N, H, W]
+        except Exception as e:
+            print("Error concatenating mined samples:", e)
+            return None
+
+        N = preds.shape[0]
+        k = min(n, N)
+
+        pred_masks = torch.argmax(preds, dim=1).cpu().numpy()  # [N, H, W]
+        targets_np = targets.cpu().numpy()  # [N, H, W]
+
+        # Prepare figure with k rows and 2 columns
+        fig, axes = plt.subplots(k, 2, figsize=(6, 3 * k))
+
+        if k == 1:
+            axes = np.expand_dims(axes, 0)
+
+        for i in range(k):
+            ax_pred = axes[i, 0]
+            ax_gt = axes[i, 1]
+
+            ax_pred.imshow(pred_masks[i], cmap='tab20')
+            ax_pred.set_title(f'{split} pred #{i}')
+            ax_pred.axis('off')
+
+            ax_gt.imshow(targets_np[i], cmap='tab20')
+            ax_gt.set_title('ground truth')
+            ax_gt.axis('off')
+
+        plt.tight_layout()
+
+        if save_path is None:
+            save_path = os.path.join('./log', f'mined_{split}_samples_epoch{self.epoch}.png')
+
+        try:
+            fig.savefig(save_path)
+            plt.close(fig)
+            print(f"Saved mined {split} samples figure to: {save_path}")
+            return save_path
+        except Exception as e:
+            print("Failed to save mined samples figure:", e)
+            plt.close(fig)
+            return None
