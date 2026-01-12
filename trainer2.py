@@ -29,6 +29,7 @@ class Trainer2:
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  epochs: int = 100,
                  epoch: int = 0,
+                 fold: int = 0,
                  notebook: bool = False
                  ):
 
@@ -90,6 +91,7 @@ class Trainer2:
         self.epoch_val_preds = []
         self.epoch_val_targets = []
         self.best_pred_epoch = 20
+        self.fold = fold
 
         
         # Set up a logger
@@ -263,6 +265,16 @@ class Trainer2:
         if self.epoch == self.best_pred_epoch:
             self.epoch_train_preds = torch.cat(epoch_preds)
             self.epoch_train_targets = torch.cat(epoch_targets)
+            
+            train_preds_np = self.epoch_train_preds.cpu().numpy()
+            train_targets_np = self.epoch_train_targets.cpu().numpy()
+            
+            
+            # save
+            np.save("/home/eric/Documents/cervicalResearchIIP/img_1006t/MinedDataset/unet1_fold_{fold}_train_preds.npy", train_preds_np)
+            np.save("/home/eric/Documents/cervicalResearchIIP/img_1006t/MinedDataset/unet1_fold_{fold}_train_targets.npy", train_targets_np)
+
+            print(f"Saved train preds/targets at epoch {self.epoch}")
 
         
         self.training_loss.append(np.mean(train_losses))
@@ -302,6 +314,7 @@ class Trainer2:
                 pred = torch.softmax(out, dim=1).cpu()  # [B, C, H, W]
                 epoch_val_preds.append(pred)
                 epoch_val_targets.append(target.cpu())
+                
 
                 
                 loss = self.criterion(out, target)
@@ -348,6 +361,16 @@ class Trainer2:
         if self.epoch == self.best_pred_epoch:
             self.epoch_val_preds = torch.cat(epoch_val_preds)
             self.epoch_val_targets = torch.cat(epoch_val_targets)
+            
+            val_preds_np = self.epoch_val_preds.cpu().numpy()
+            val_targets_np = self.epoch_val_targets.cpu().numpy()
+            
+            
+            # save
+            #np.save(f"/home/eric/Documents/cervicalResearchIIP/img_1006t/MinedDataset/unet1_fold_{self.fold}_val_preds.npy", val_preds_np)
+            #np.save(f"/home/eric/Documents/cervicalResearchIIP/img_1006t/MinedDataset/unet1_fold_{self.fold}_val_targets.npy", val_targets_np)
+
+            print(f"Saved val preds/targets at epoch {self.epoch}")
 
         self.validation_loss.append(np.mean(valid_losses))
         batch_iter.close()

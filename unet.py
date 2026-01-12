@@ -354,11 +354,16 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion1: processes Stage-1 probabilities (11 channels)
+        self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion2: processes 109-filter tensor
+        self.fusion2 = nn.Conv2d(in_channels = 109, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion3: processes concatenation of f1 + f2 (6 channels)
+        self.fusion3 = nn.Conv2d(in_channels = 6, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
+        self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
         
-        self.in_channels = 9
+        self.in_channels = 3
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -448,12 +453,21 @@ class UNet(nn.Module):
     def forward(self, x: torch.tensor):
         encoder_output = []
         
-        x1 = self.fusion(x)
-        x2 = self.fusion2(x1)
-        x3 = self.fusion3(x2)
-
+        # Extract f1 (Stage-1 probs): first 11 channels
+        f1_input = x[:, :11, :, :] if x.shape[1] > 11 else x
+        f1 = self.fusion1(f1_input)  # [B, 11, H, W] -> [B, 3, H, W]
         
-        x = torch.cat((x1, x2, x3), dim=1)
+        # Extract f2 (109-filter tensor): channels 11 onwards
+        f2_input = x[:, 11:, :, :] if x.shape[1] > 11 else x
+        f2 = self.fusion2(f2_input)  # [B, 109, H, W] -> [B, 3, H, W]
+        
+        # f3: Concatenation of f1 and f2 (3+3=6 channels)
+        f3_concat = torch.cat((f1, f2), dim=1)
+        f3 = self.fusion3(f3_concat)  # [B, 6, H, W] -> [B, 3, H, W]
+        
+        # Final concatenation: f1 + f2 + f3 (3+3+3=9 channels)
+        x_fused = torch.cat((f1, f2, f3), dim=1)
+        x = self.fusion_final(x_fused)  # [B, 9, H, W] -> [B, 3, H, W]
                 
         # Encoder pathway
         for module in self.down_blocks:
