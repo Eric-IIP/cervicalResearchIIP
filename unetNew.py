@@ -328,7 +328,7 @@ class UpBlock(nn.Module):
         return y
 
 
-class UNet(nn.Module):
+class UNetC(nn.Module):
     """
     activation: 'relu', 'leaky', 'elu'
     normalization: 'batch', 'instance', 'group{group_size}'
@@ -354,11 +354,17 @@ class UNet(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion1: processes Stage-1 probabilities (11 channels)
+        self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
+        # fusion2: processes 109-filter tensor
+        self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
         
-        self.in_channels = 9
+        self.fusion2 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
+        
+        # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
+        self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
+        
+        self.in_channels = 3
         ##uncommented this part for original UNet
         #self.in_channels = in_channels
         print("Input channel count" + str(self.in_channels))
@@ -448,13 +454,29 @@ class UNet(nn.Module):
     def forward(self, x: torch.tensor):
         encoder_output = []
         
-        x1 = self.fusion(x)
-        x2 = self.fusion2(x1)
-        x3 = self.fusion3(x2)
+        # Extract f1 (Stage-1 probs): first 11 channels
+        f1_input = x[:, :11, :, :] if x.shape[1] > 11 else x
+        # Extract f2 (109-filter tensor): channels 11 onwards
+        f2_input = x[:, 11:, :, :] if x.shape[1] > 11 else x
 
+
+        # soft probs
+        f1_soft = f1_input                                # [B, K, H, W]
+
+        # hard labels
+        f1_hard = torch.argmax(f1_soft, dim=1)
+        f1_hard = torch.nn.functional.one_hot(f1_hard, num_classes=f1_soft.shape[1])
+        f1_hard = f1_hard.permute(0, 3, 1, 2).float()     # [B, K, H, W]
+
+        f1_se = self.fusion1(f1_soft)
+        f1_he = self.fusion2(f1_hard)
+        f2_emb = self.fusion3(f2_input)
+
+        f3 = torch.cat([f1_se, f1_he,f2_emb], dim=1)
+        delta = self.fusion_final(f3)
         
-        x = torch.cat((x1, x2, x3), dim=1)
-                
+        x = delta
+
         # Encoder pathway
         for module in self.down_blocks:
             x, before_pooling = module(x)

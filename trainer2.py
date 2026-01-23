@@ -90,7 +90,7 @@ class Trainer2:
         self.epoch_train_targets = []
         self.epoch_val_preds = []
         self.epoch_val_targets = []
-        self.best_pred_epoch = 20
+        self.best_pred_epoch = 10
         self.fold = fold
 
         
@@ -112,7 +112,7 @@ class Trainer2:
         
         
         #ここでearlystoppingの打ち切り回数設定
-        early_stopping = EarlyStopping(patience = 50,verbose = True)
+        early_stopping = EarlyStopping(patience = 20,verbose = True)
         
         
         
