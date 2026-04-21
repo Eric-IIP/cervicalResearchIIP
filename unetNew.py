@@ -354,12 +354,19 @@ class UNetC(nn.Module):
         
         print("in constructor inchannel: " + str(in_channels))
         
-        # fusion1: processes Stage-1 probabilities (11 channels)
-        self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
-        # fusion2: processes 109-filter tensor
+        # pre convolution that f2 needs before 
+        f2_conv = nn.Conv2d(in_channels=46, out_channels=46, kernel_size=3, padding=1)
+        
+        # soft probs
         self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
         
+        # hard mask
         self.fusion2 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
+        
+        # fusion 3 feature fusion
+        self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
+        
+        
         
         # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
         self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
@@ -461,7 +468,17 @@ class UNetC(nn.Module):
 
 
         # soft probs
-        f1_soft = f1_input                                # [B, K, H, W]
+        f1_soft = torch.softmax(f1_input, dim=1) 
+        
+        
+        ##debugging (remove after)
+        print("Sum across classes at pixel (0,128,128):", 
+        f1_soft[0, :, 128, 128].sum().item())
+        # Should print very close to 1.0
+    
+        print("Min:", f1_soft.min().item())  # Should be >= 0
+        print("Max:", f1_soft.max().item())  # Should be <= 1# [B, K, H, W]
+        ##debugging
 
         # hard labels
         f1_hard = torch.argmax(f1_soft, dim=1)
@@ -470,6 +487,7 @@ class UNetC(nn.Module):
 
         f1_se = self.fusion1(f1_soft)
         f1_he = self.fusion2(f1_hard)
+        f2_input = self.f2_conv(f2_input)
         f2_emb = self.fusion3(f2_input)
 
         f3 = torch.cat([f1_se, f1_he,f2_emb], dim=1)

@@ -40,21 +40,16 @@ class Trainer2:
         self.all_max_activations = []
         self.lr_scheduler = None
 
-        #for mcunet
+        ## 5-10 cycles are ideal
+        # Total iterations = 66,000
+        # Target cycle length = 66,000 / 7 cycles ≈ 9,400 iterations
+        # step_size_up = step_size_down = 4,700
         self.lr_scheduler = CyclicLR(
             optimizer,
-            
-            #1e-4 to 1e-3 (0.0001 to 0.001) - Standard range
-            # 1e-4 to 1e-3 (0.0001 to 0.001) - Standard range
-            #3e-4 (0.0003) - Most common default
-            #1e-3 (0.001) - Default in many frameworks but often too high
-            #1e-5 to 1e-4 - For fine-tuning pre-trained models
-            
-            
             base_lr=1e-4,      # Minimum LR
             max_lr=1e-3,       # Maximum LR
-            step_size_up=500, # Gradual increase for 2000 iterations
-            step_size_down=500, # Gradual decrease for 2000 iterations
+            step_size_up=4700, # Gradual increase
+            step_size_down=4700, # Gradual decrease 
             mode='triangular', # Linear up and down
             cycle_momentum=False 
         ) 
