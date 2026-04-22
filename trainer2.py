@@ -107,7 +107,7 @@ class Trainer2:
         
         
         #ここでearlystoppingの打ち切り回数設定
-        early_stopping = EarlyStopping(patience = 20,verbose = True)
+        early_stopping = EarlyStopping(patience = 50,verbose = True)
         
         
         

@@ -355,7 +355,7 @@ class UNetC(nn.Module):
         print("in constructor inchannel: " + str(in_channels))
         
         # pre convolution that f2 needs before 
-        f2_conv = nn.Conv2d(in_channels=46, out_channels=46, kernel_size=3, padding=1)
+        self.f2_conv = nn.Conv2d(in_channels=46, out_channels=46, kernel_size=3, padding=1)
         
         # soft probs
         self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
@@ -470,15 +470,6 @@ class UNetC(nn.Module):
         # soft probs
         f1_soft = torch.softmax(f1_input, dim=1) 
         
-        
-        ##debugging (remove after)
-        print("Sum across classes at pixel (0,128,128):", 
-        f1_soft[0, :, 128, 128].sum().item())
-        # Should print very close to 1.0
-    
-        print("Min:", f1_soft.min().item())  # Should be >= 0
-        print("Max:", f1_soft.max().item())  # Should be <= 1# [B, K, H, W]
-        ##debugging
 
         # hard labels
         f1_hard = torch.argmax(f1_soft, dim=1)
