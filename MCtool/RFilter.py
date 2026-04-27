@@ -629,7 +629,7 @@ def posterization(image, n, nml_on=True):
     else:
         height, width = image.shape
         
-    image = np.asarray(image, dtype=np.uint8).reshape((height, width))
+    image = np.asarray(image, dtype=np.float32).reshape((height, width))
 
     f_img = np.zeros((height, width))
     for y in range(0, height):
@@ -707,7 +707,7 @@ def knn_ave(image, ksize, k, nml_on=True):
     else:
         height, width = image.shape
         
-    image = np.asarray(image, dtype=np.uint8).reshape((height, width))
+    image = np.asarray(image, dtype=np.float32).reshape((height, width))
     f_img = np.zeros((height, width))
     for y in range(ksize, height-ksize):
         for x in range(ksize, width-ksize):
@@ -1253,6 +1253,8 @@ def clahe(img):
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # if img.dtype != np.uint8:
     #     img = (img * 255).astype(np.uint8)
+    if img.dtype != np.uint8:
+        img = np.clip(img, 0, 255).astype(np.uint8)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
     cl1 = clahe.apply(img)
     
