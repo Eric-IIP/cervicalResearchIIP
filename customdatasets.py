@@ -72,19 +72,17 @@ class SegmentationDataSet1(data.Dataset):
 
     def __getitem__(self,
                     index: int):
-        # Select the sample
-        input_ID = self.inputs[index]
-        target_ID = self.targets[index]
-
-        # Load input and target
-        x, y = imread(str(input_ID)), imread(str(target_ID))
+        # Load from disk on demand — nothing kept in RAM between batches
+        x = imread(str(self.inputs[index]))
+        y = imread(str(self.targets[index]))
 
         # Preprocessing
         if self.transform is not None:
             x, y = self.transform(x, y)
 
         # Typecasting
-        x, y = torch.from_numpy(x).type(self.inputs_dtype), torch.from_numpy(y).type(self.targets_dtype)
+        x = torch.from_numpy(x).type(self.inputs_dtype)
+        y = torch.from_numpy(y).type(self.targets_dtype)
 
         return x, y
 
