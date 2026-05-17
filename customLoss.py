@@ -744,3 +744,67 @@ class JointCELossHausdorff(nn.Module):
         hd_loss = self.hd(logits, target)
         total_loss = ce_loss + self.lambda_hd * hd_loss
         return total_loss
+    
+class TverskyLoss(nn.Module):
+    def __init__(self, alpha=0.3, beta=0.7, smooth=1e-6):
+        """
+        alpha: FP penalty (lower = less penalty on false positives)
+        beta:  FN penalty (higher = more penalty on false negatives)
+        alpha + beta should = 1.0
+        """
+        super().__init__()
+        self.alpha = alpha
+        self.beta = beta
+        self.smooth = smooth
+    
+    def forward(self, pred, target):
+        # pred:   raw logits [B, C, H, W]
+        # target: class indices [B, H, W]
+        
+        # Softmax to get probabilities
+        pred = torch.softmax(pred, dim=1)
+        
+        # One hot encode target [B, H, W] → [B, C, H, W]
+        target_one_hot = F.one_hot(
+            target.long(), 
+            num_classes=pred.shape[1]
+        ).permute(0, 3, 1, 2).float()
+        
+        # Flatten spatial dimensions for calculation
+        pred_flat = pred.contiguous().view(-1)
+        target_flat = target_one_hot.contiguous().view(-1)
+        
+        TP = (pred_flat * target_flat).sum()
+        FP = (pred_flat * (1 - target_flat)).sum()
+        FN = ((1 - pred_flat) * target_flat).sum()
+        
+        tversky = (TP + self.smooth) / (
+            TP + self.alpha * FP + self.beta * FN + self.smooth
+        )
+        
+        return 1 - tversky
+
+
+class TverskyCELoss(nn.Module):
+    def __init__(self, ce_weight=0.5, tversky_weight=0.5, 
+                 alpha=0.3, beta=0.7):
+        """
+        ce_weight:      weight for CrossEntropy loss
+        tversky_weight: weight for Tversky loss
+        alpha:          FP penalty in Tversky
+        beta:           FN penalty in Tversky
+        """
+        super().__init__()
+        self.ce_weight = ce_weight
+        self.tversky_weight = tversky_weight
+        self.ce = nn.CrossEntropyLoss()
+        self.tversky = TverskyLoss(alpha=alpha, beta=beta)
+    
+    def forward(self, pred, target):
+        ce_loss      = self.ce(pred, target.long())
+        tversky_loss = self.tversky(pred, target.long())
+        
+        combined = (self.ce_weight * ce_loss + 
+                    self.tversky_weight * tversky_loss)
+        
+        return combined

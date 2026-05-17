@@ -366,8 +366,6 @@ class UNetC(nn.Module):
         # fusion 3 feature fusion
         self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
         
-        
-        
         # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
         self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
         
@@ -466,7 +464,6 @@ class UNetC(nn.Module):
         # Extract f2 (109-filter tensor): channels 11 onwards
         f2_input = x[:, 11:, :, :] if x.shape[1] > 11 else x
 
-
         # soft probs
         f1_soft = torch.softmax(f1_input, dim=1) 
         
@@ -498,7 +495,6 @@ class UNetC(nn.Module):
             
 
         x = self.conv_final(x)
-        
         return x
 
     def __repr__(self):
