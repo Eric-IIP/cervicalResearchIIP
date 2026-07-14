@@ -808,3 +808,129 @@ class TverskyCELoss(nn.Module):
                     self.tversky_weight * tversky_loss)
         
         return combined
+    
+
+
+# class SpatialConsistencyLoss(nn.Module):
+#     def __init__(self, lambda_weight=0.1, num_classes=11):
+#         super().__init__()
+#         self.lambda_weight = lambda_weight
+#         self.num_classes = num_classes
+    
+#     def forward(self, pred, target):
+#         prob = torch.softmax(pred, dim=1)  # [B, C, H, W]
+        
+#         loss = torch.tensor(0.0, device=pred.device)
+        
+#         neighbors = [
+#             (prob[:, :, :, :-1], prob[:, :, :, 1:]),   # horizontal
+#             (prob[:, :, :-1, :], prob[:, :, 1:, :]),   # vertical
+#         ]
+        
+#         for p_center, p_neighbor in neighbors:
+#             for c1 in range(1, self.num_classes):       # skip BG
+#                 for c2 in range(1, self.num_classes):   # skip BG
+#                     if c1 == c2:
+#                         continue
+#                     if abs(c1 - c2) <= 2:               # allow adjacent vertebrae
+#                         continue
+#                     penalty = p_center[:, c1, :, :] * p_neighbor[:, c2, :, :]
+#                     loss += penalty.mean()
+        
+#         return self.lambda_weight * loss
+
+
+# class Stage2Loss(nn.Module):
+#     def __init__(self, lambda_weight=0.1):
+#         super().__init__()
+#         self.ce = nn.CrossEntropyLoss()
+#         self.sp = SpatialConsistencyLoss(lambda_weight=lambda_weight)
+    
+#     def forward(self, pred, target):
+#         ce_loss = self.ce(pred, target.long())
+#         sp_loss = self.sp(pred, target)
+#         return ce_loss + sp_loss
+    
+    
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class SpatialConsistencyLoss(nn.Module):
+    """
+    Penalizes anatomically inconsistent adjacent pixel predictions.
+
+    strict=False (gap-tolerant): non-background classes can touch
+        if they are anatomically adjacent (|c1-c2| <= gap).
+    strict=True (BG-buffer): any two different non-background classes
+        touching is penalized — use with buffered labels.
+    """
+    def __init__(self, lambda_weight=0.1, num_classes=11, bg_class=0,
+                 strict=False, gap=2):
+        super().__init__()
+        self.lambda_weight = lambda_weight
+        self.num_classes = num_classes
+        self.bg_class = bg_class
+        self.strict = strict
+        self.gap = gap
+
+    def forward(self, pred, target=None):
+        # pred: raw logits [B, C, H, W]
+        prob = torch.softmax(pred, dim=1)
+
+        loss = torch.tensor(0.0, device=pred.device)
+
+        # 2 directions cover all 4 neighbors (left=right shifted, top=bottom shifted)
+        neighbor_pairs = [
+            (prob[:, :, :, :-1], prob[:, :, :, 1:]),   # horizontal
+            (prob[:, :, :-1, :], prob[:, :, 1:, :]),   # vertical
+        ]
+
+        for p_center, p_neighbor in neighbor_pairs:
+            for c1 in range(self.num_classes):
+                for c2 in range(self.num_classes):
+
+                    if c1 == c2:
+                        continue  # same class touching itself — always valid
+
+                    if self.strict:
+                        # BG-buffer version: BG involved anywhere — skip
+                        if c1 == self.bg_class or c2 == self.bg_class:
+                            continue
+                        # any two different non-BG classes — penalize
+                    else:
+                        # gap-tolerant version: skip BG and skip adjacent classes
+                        if c1 == self.bg_class or c2 == self.bg_class:
+                            continue
+                        if abs(c1 - c2) <= self.gap:
+                            continue
+
+                    penalty = p_center[:, c1, :, :] * p_neighbor[:, c2, :, :]
+                    loss += penalty.mean()
+
+        return self.lambda_weight * loss
+
+
+class Stage2Loss(nn.Module):
+    def __init__(self, lambda_weight=0.1, num_classes=11, strict=False, gap=2):
+        super().__init__()
+        self.ce = nn.CrossEntropyLoss()
+        self.sp = SpatialConsistencyLoss(
+            lambda_weight=lambda_weight,
+            num_classes=num_classes,
+            strict=strict,
+            gap=gap
+        )
+
+    def forward(self, pred, target):
+        ce_loss = self.ce(pred, target.long())
+        sp_loss = self.sp(pred, target)
+        
+        if not hasattr(self, '_step'):
+            self._step = 0
+        self._step += 1
+        if self._step % 50 == 0:  # print every 50 batches
+            print(f"  CE: {ce_loss.item():.4f} | Spatial(weighted): {sp_loss.item():.4f} "
+                f"| Spatial(raw): {(sp_loss/self.sp.lambda_weight).item():.4f}")
+        
+        return ce_loss + sp_loss
