@@ -445,7 +445,7 @@ class UNet(nn.Module):
             self.weight_init(module, method_weights, **kwargs_weights)  # initialize weights
             self.bias_init(module, method_bias, **kwargs_bias)  # initialize bias
 
-    def forward(self, x: torch.tensor):
+    def forward(self, x: torch.tensor, return_features: bool = False):
         encoder_output = []
         
         x1 = self.fusion(x)
@@ -465,8 +465,11 @@ class UNet(nn.Module):
             before_pool = encoder_output[-(i + 2)]
             x = module(before_pool, x)
             
-
+        deep_features = x
         x = self.conv_final(x)
+        
+        if return_features:
+            return x, deep_features
         
         return x
 

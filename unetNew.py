@@ -341,38 +341,42 @@ class UNetC(nn.Module):
                  out_channels: int = 2,
                  n_blocks: int = 1,
                  start_filters: int = 32,
-                 activation: str = 'relu',  
+                 #updated
+                 stage1_feature_channels: int = 32,
+                 activation: str = 'relu',
                  normalization: str = 'batch',
                  conv_mode: str = 'same',
                  dim: int = 2,
                  up_mode: str = 'transposed',
                  decoder_output: list = [],
-                 
+
                  ):
         super().__init__()
-    
-        
+
+
         print("in constructor inchannel: " + str(in_channels))
-        
-        # pre convolution that f2 needs before 
-        self.f2_conv = nn.Conv2d(in_channels=46, out_channels=46, kernel_size=3, padding=1)
-        
-        # soft probs
-        self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
-        
-        # hard mask
-        self.fusion2 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
-        
-        # fusion 3 feature fusion
-        self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
-        
-        # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
-        self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
-        
-        self.in_channels = 3
-        ##uncommented this part for original UNet
-        #self.in_channels = in_channels
-        print("Input channel count" + str(self.in_channels))
+
+        # # pre convolution that f2 needs before
+        # self.f2_conv = nn.Conv2d(in_channels=46, out_channels=46, kernel_size=3, padding=1)
+
+        # # soft probs
+        # self.fusion1 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
+
+        # # hard mask
+        # self.fusion2 = nn.Conv2d(in_channels = 11, out_channels = 3, kernel_size = 3, padding="same")
+
+        # # fusion 3 feature fusion
+        # self.fusion3 = nn.Conv2d(in_channels = 46, out_channels = 3, kernel_size = 3, padding="same")
+
+        # # fusion_final: processes concatenation of f1 + f2 + f3 (9 channels)
+        # self.fusion_final = nn.Conv2d(in_channels = 9, out_channels = 3, kernel_size = 3, padding="same")
+
+        # --- CRITICAL CHANGE HERE ---
+        # The U-Net encoder will now receive the 3-channel 'delta'
+        # PLUS the uncompressed Stage 1 features.
+        self.in_channels = 32
+        print("Updated Backbone Input channel count: " + str(self.in_channels))
+        # ----------------------------
         
         self.out_channels = out_channels
         self.n_blocks = n_blocks
@@ -459,29 +463,32 @@ class UNetC(nn.Module):
     def forward(self, x: torch.tensor):
         encoder_output = []
         
-        # Extract f1 (Stage-1 probs): first 11 channels
-        f1_input = x[:, :11, :, :] if x.shape[1] > 11 else x
-        # Extract f2 (109-filter tensor): channels 11 onwards
-        f2_input = x[:, 11:, :, :] if x.shape[1] > 11 else x
-
-        # soft probs
-        f1_soft = torch.softmax(f1_input, dim=1) 
+        # # Extract f1 (Stage-1 probs): first 11 channels
+        # f1_input = x[:, :11, :, :] 
+        # # Extract f2 (109-filter tensor): channels 11 onwards
+        # f2_input = x[:, 11:57, :, :] 
+        s1_features = x[:, 57:, :, :]
+        
+        
+        # # soft probs
+        # f1_soft = torch.softmax(f1_input, dim=1) 
         
 
-        # hard labels
-        f1_hard = torch.argmax(f1_soft, dim=1)
-        f1_hard = torch.nn.functional.one_hot(f1_hard, num_classes=f1_soft.shape[1])
-        f1_hard = f1_hard.permute(0, 3, 1, 2).float()     # [B, K, H, W]
+        # # hard labels
+        # f1_hard = torch.argmax(f1_soft, dim=1)
+        # f1_hard = torch.nn.functional.one_hot(f1_hard, num_classes=f1_soft.shape[1])
+        # f1_hard = f1_hard.permute(0, 3, 1, 2).float()     # [B, K, H, W]
 
-        f1_se = self.fusion1(f1_soft)
-        f1_he = self.fusion2(f1_hard)
-        f2_input = self.f2_conv(f2_input)
-        f2_emb = self.fusion3(f2_input)
+        # f1_se = self.fusion1(f1_soft)
+        # f1_he = self.fusion2(f1_hard)
+        # f2_input = self.f2_conv(f2_input)
+        # f2_emb = self.fusion3(f2_input)
 
-        f3 = torch.cat([f1_se, f1_he,f2_emb], dim=1)
-        delta = self.fusion_final(f3)
+        # f3 = torch.cat([f1_se, f1_he, f2_emb], dim=1)
+        # delta = self.fusion_final(f3)
         
-        x = delta
+       # x = torch.cat([f1_input, f2_input, s1_features, delta], dim=1)
+        x = torch.cat([s1_features], dim=1)
 
         # Encoder pathway
         for module in self.down_blocks:

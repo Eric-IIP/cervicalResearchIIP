@@ -912,9 +912,11 @@ class SpatialConsistencyLoss(nn.Module):
 
 
 class Stage2Loss(nn.Module):
-    def __init__(self, lambda_weight=0.1, num_classes=11, strict=False, gap=2):
+    def __init__(self, lambda_weight=0.1, num_classes=11, strict=False, gap=2, focal_gamma=2.0):
         super().__init__()
-        self.ce = nn.CrossEntropyLoss()
+        # Replace CE with Focal Loss
+        self.focal = FocalLoss(gamma=focal_gamma)
+        
         self.sp = SpatialConsistencyLoss(
             lambda_weight=lambda_weight,
             num_classes=num_classes,
@@ -923,14 +925,17 @@ class Stage2Loss(nn.Module):
         )
 
     def forward(self, pred, target):
-        ce_loss = self.ce(pred, target.long())
+        # Calculate Focal instead of CE
+        focal_loss = self.focal(pred, target.long())
         sp_loss = self.sp(pred, target)
         
         if not hasattr(self, '_step'):
             self._step = 0
         self._step += 1
-        if self._step % 50 == 0:  # print every 50 batches
-            print(f"  CE: {ce_loss.item():.4f} | Spatial(weighted): {sp_loss.item():.4f} "
-                f"| Spatial(raw): {(sp_loss/self.sp.lambda_weight).item():.4f}")
         
-        return ce_loss + sp_loss
+        if self._step % 50 == 0:  # print every 50 batches
+            print(f"  Focal: {focal_loss.item():.4f} | Spatial(weighted): {sp_loss.item():.4f} "
+                  f"| Spatial(raw): {(sp_loss/self.sp.lambda_weight).item():.4f}")
+        
+        # Return the combined loss
+        return focal_loss + sp_loss
