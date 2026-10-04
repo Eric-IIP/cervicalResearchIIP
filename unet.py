@@ -350,18 +350,8 @@ class UNet(nn.Module):
                  
                  ):
         super().__init__()
-    
-        
-        print("in constructor inchannel: " + str(in_channels))
-        
-        self.fusion = nn.Conv2d(in_channels = in_channels, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion2 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        self.fusion3 = nn.Conv2d(in_channels = 3, out_channels = 3, kernel_size = 3, padding="same")
-        
-        #self.in_channels = 1
-        ##uncommented this part for original UNet
-        self.in_channels = 9
-        print("Input channel count" + str(self.in_channels))
+
+        self.in_channels = in_channels
         
         self.out_channels = out_channels
         self.n_blocks = n_blocks
@@ -447,14 +437,7 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.tensor, return_features: bool = False):
         encoder_output = []
-        
-        x1 = self.fusion(x)
-        x2 = self.fusion2(x1)
-        x3 = self.fusion3(x2)
 
-        
-        x = torch.cat((x1, x2, x3), dim=1)
-                
         # Encoder pathway
         for module in self.down_blocks:
             x, before_pooling = module(x)
