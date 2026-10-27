@@ -51,7 +51,8 @@ class InputFeature(Enum):
     KNN2 = 'KNN2'
     BLT1 = 'BLT1'
     BLT2 = 'BLT2'
-    OOO_ = 'OOO_'
+    
+    #OOO_ = 'OOO_'
     ## Custom added features from now on
 
     # # #CANNY FILTER
